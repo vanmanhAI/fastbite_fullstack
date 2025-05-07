@@ -17,6 +17,8 @@ import { getProducts } from '@/services/productService'
 import { getAllCategories } from '@/services/categoryService'
 import LoadingSpinner from '@/components/loading-spinner'
 import { Input } from "@/components/ui/input"
+import ProductHeroSlider from "@/components/products/product-hero-slider"
+import CategorySlider from "@/components/products/category-slider"
 
 export default function ProductsPage() {
   const router = useRouter()
@@ -94,6 +96,15 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Slider hiển thị sản phẩm nổi bật */}
+      <ProductHeroSlider className="mb-10" />
+      
+      {/* Slider danh mục */}
+      <div className="px-6 mb-10">
+        <h2 className="text-2xl font-bold mb-4">Khám phá danh mục</h2>
+        <CategorySlider />
+      </div>
+
       <h1 className="text-3xl font-bold mb-8 text-center">Thực đơn của chúng tôi</h1>
       
       <div className="flex flex-col md:flex-row gap-8">
