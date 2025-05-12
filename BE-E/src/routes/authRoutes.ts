@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, getCurrentUser } from "../controllers/authController";
+import { register, login, getCurrentUser, logout, refreshToken } from "../controllers/authController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 
 const router = Router();
@@ -10,7 +10,13 @@ router.post("/register", register);
 // Route đăng nhập
 router.post("/login", login);
 
-// Route lấy thông tin người dùng hiện tại (yêu cầu xác thực)
+// Route lấy thông tin người dùng hiện tại
 router.get("/me", authenticateToken, getCurrentUser);
 
-export default router; 
+// Route đăng xuất
+router.post("/logout", authenticateToken, logout);
+
+// Route refresh token
+router.post("/refresh", authenticateToken, refreshToken);
+
+export default router;

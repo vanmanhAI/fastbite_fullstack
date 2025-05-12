@@ -11,6 +11,10 @@ import { Promotion } from "./models/Promotion";
 import { Coupon } from "./models/Coupon";
 import { ChatLog } from "./models/ChatLog";
 import { InventoryTransaction } from "./models/InventoryTransaction";
+import { UserPreference } from "./models/UserPreference";
+import { UserBehavior } from "./models/UserBehavior";
+import { Cart } from "./models/Cart";
+import { ProductLike } from "./models/ProductLike";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -36,7 +40,11 @@ export const AppDataSource = new DataSource({
     Promotion,
     Coupon,
     ChatLog,
-    InventoryTransaction
+    InventoryTransaction,
+    UserPreference,
+    UserBehavior,
+    Cart,
+    ProductLike
   ],
   subscribers: [],
   migrations: [],

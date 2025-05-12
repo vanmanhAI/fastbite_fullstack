@@ -6,19 +6,21 @@ import { Payment } from "./Payment";
 import { Address } from "./Address";
 
 export enum OrderStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  SHIPPING = "shipping",
-  DELIVERED = "delivered",
-  COMPLETED = "completed",
-  CANCELLED = "cancelled"
+  PENDING = "pending",        // Đơn hàng vừa đặt, chờ admin phê duyệt
+  APPROVED = "approved",      // Admin đã phê duyệt đơn hàng
+  REJECTED = "rejected",      // Admin từ chối đơn hàng
+  PROCESSING = "processing",  // Đơn hàng đang được xử lý
+  SHIPPING = "shipping",      // Đơn hàng đang vận chuyển
+  DELIVERED = "delivered",    // Đơn hàng đã được giao
+  COMPLETED = "completed",    // Khách hàng đã xác nhận nhận hàng, đơn hàng hoàn tất
+  CANCELLED = "cancelled"     // Đơn hàng bị hủy
 }
 
 export enum PaymentStatus {
-  PENDING = "pending",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  REFUNDED = "refunded"
+  PENDING = "pending",        // Chờ thanh toán
+  COMPLETED = "completed",    // Đã thanh toán
+  FAILED = "failed",          // Thanh toán thất bại
+  REFUNDED = "refunded"       // Đã hoàn tiền
 }
 
 export enum PaymentMethod {
@@ -56,9 +58,6 @@ export class Order {
   @Column({ name: "discount", type: "decimal", precision: 10, scale: 2, default: 0 })
   discount!: number;
 
-  @Column({ name: "total_amount", type: "decimal", precision: 10, scale: 2 })
-  totalAmount!: number;
-
   @Column({
     type: "enum",
     enum: OrderStatus,
@@ -88,6 +87,33 @@ export class Order {
 
   @Column({ type: "text", nullable: true })
   notes!: string | null;
+
+  @Column({ type: "decimal", precision: 10, scale: 2 })
+  totalAmount!: number;
+
+  @Column({ nullable: true })
+  shippingAddress!: string;
+
+  @Column({ nullable: true })
+  shippingPhone!: string;
+
+  @Column({ nullable: true })
+  note!: string;
+
+  @Column({ nullable: true })
+  cancelReason!: string;
+
+  @Column({ type: "datetime", nullable: true })
+  approvedAt!: Date;
+
+  @Column({ type: "datetime", nullable: true })
+  shippedAt!: Date;
+
+  @Column({ type: "datetime", nullable: true })
+  deliveredAt!: Date;
+
+  @Column({ type: "datetime", nullable: true })
+  completedAt!: Date;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;

@@ -58,8 +58,17 @@ export class Product {
   @Column({ name: "is_featured", default: false })
   isFeatured: boolean;
 
-  @Column({ name: "is_active", default: true })
+  @Column({ type: "boolean", default: true, name: "is_active" })
   isActive: boolean;
+
+  @Column({ type: "decimal", precision: 2, scale: 1, default: 0, name: "rating" })
+  rating: number;
+
+  @Column({ type: "int", default: 0, name: "num_reviews" })
+  numReviews: number;
+
+  @Column({ type: "int", default: 0, name: "like_count" })
+  likeCount: number;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;

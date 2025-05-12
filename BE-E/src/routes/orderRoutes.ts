@@ -1,23 +1,32 @@
-import express from "express";
-import * as orderController from "../controllers/orderController";
+import { Router } from "express";
 import { authenticateToken, authorizeAdmin } from "../middlewares/authMiddleware";
+import { OrderController, getAllOrders, updateOrderStatus } from "../controllers/orderController";
 import { validate } from "../middlewares/validationMiddleware";
-import { createOrderValidator, updateOrderStatusValidator } from "../validators/orderValidators";
+import { createOrderValidator } from "../validators/orderValidators";
 
-const router = express.Router();
+const router = Router();
+const orderController = new OrderController();
 
-router.get("/my-orders", authenticateToken, orderController.getUserOrders);
-router.get("/:id", authenticateToken, orderController.getOrderById);
-router.post("/", authenticateToken, validate(createOrderValidator), orderController.createOrder);
-router.post("/:id/cancel", authenticateToken, orderController.cancelOrder);
+// Routes for authenticated users
+router.use(authenticateToken);
 
-router.get("/", authenticateToken, authorizeAdmin, orderController.getAllOrders);
-router.put(
-  "/:id/status",
-  authenticateToken,
-  authorizeAdmin,
-  validate(updateOrderStatusValidator),
-  orderController.updateOrderStatus
-);
+// Get all orders of the authenticated user
+router.get("/", orderController.getUserOrders);
+
+// Get a specific order
+router.get("/:id", orderController.getOrderById);
+
+// Create a new order
+router.post("/", validate(createOrderValidator), orderController.createOrder);
+
+// Cancel an order
+router.post("/:id/cancel", orderController.cancelOrder);
+
+// Complete an order (confirm receipt)
+router.post("/:id/complete", orderController.completeOrder);
+
+// Admin routes
+router.get("/admin/all", authorizeAdmin, getAllOrders);
+router.put("/admin/:id/status", authorizeAdmin, updateOrderStatus);
 
 export default router; 

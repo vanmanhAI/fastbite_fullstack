@@ -131,7 +131,7 @@ export const handleMomoCallback = async (req: Request, res: Response) => {
 
       // Cập nhật đơn hàng
       order.paymentStatus = PaymentStatus.COMPLETED;
-      order.status = OrderStatus.PROCESSING;
+      order.status = OrderStatus.APPROVED;
       await orderRepository.save(order);
 
       return res.status(200).json({ message: "Cập nhật thanh toán thành công" });

@@ -11,12 +11,17 @@ import { Coupon } from "../models/Coupon";
 import { ChatLog } from "../models/ChatLog";
 import { InventoryTransaction } from "../models/InventoryTransaction";
 import { Payment } from "../models/Payment";
-import { config } from 'dotenv';
+import { UserBehavior } from "../models/UserBehavior";
+import { UserPreference } from "../models/UserPreference";
+import { ProductLike } from "../models/ProductLike";
+import { Cart } from "../models/Cart";
+import path from "path";
+import * as dotenv from "dotenv";
 
-// Đọc biến môi trường từ file .env
-config();
+// Load environment variables
+dotenv.config();
 
-// Create a new DataSource (previously EntityManager)
+// Tạo kết nối TypeORM
 export const AppDataSource = new DataSource({
   type: "mysql",
   host: process.env.DB_HOST || "localhost",
@@ -24,33 +29,44 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "root",
   password: process.env.DB_PASSWORD || "InternLOL123.",
   database: process.env.DB_DATABASE || "fastbite_db",
-  synchronize: true, // Chỉ dùng trong môi trường development
-  logging: process.env.NODE_ENV === "development",
   entities: [
     User,
     Product,
     Category,
+    Review,
     Order,
     OrderItem,
-    Review,
     Address,
-    Promotion,
+    Payment,
     Coupon,
-    ChatLog,
     InventoryTransaction,
-    Payment
+    Promotion,
+    ChatLog,
+    UserBehavior,
+    UserPreference,
+    ProductLike,
+    Cart
   ],
-  subscribers: [],
-  migrations: [],
+  migrations: [path.join(__dirname, "../database/migrations/*.{ts,js}")],
+  synchronize: process.env.NODE_ENV === "development",
+  logging: process.env.NODE_ENV === "development",
+  timezone: "+07:00"
 });
 
-// Initialize the connection
+// Hàm khởi tạo kết nối cơ sở dữ liệu
 export const initializeDatabase = async () => {
   try {
     await AppDataSource.initialize();
+    
+    // Thực thi migration nếu cấu hình cho phép
+    if (process.env.RUN_MIGRATIONS === "true") {
+      console.log("Running migrations...");
+      await AppDataSource.runMigrations();
+    }
+    
     return AppDataSource;
   } catch (error) {
-    console.error("Error during Data Source initialization:", error);
+    console.error("Error during Data Source initialization", error);
     throw error;
   }
 }; 

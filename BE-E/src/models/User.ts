@@ -4,10 +4,30 @@ import { Order } from "./Order";
 import { Address } from "./Address";
 import { Review } from "./Review";
 import { ChatLog } from "./ChatLog";
+import { Cart } from "./Cart";
+import { UserBehavior } from "./UserBehavior";
+import { UserPreference } from "./UserPreference";
 
 export enum UserRole {
   CUSTOMER = "customer",
   ADMIN = "admin"
+}
+
+export interface UserPreferences {
+  favoriteCategories?: string[];
+  dietaryRestrictions?: string[];
+  tastePreferences?: {
+    spicy?: boolean;
+    sweet?: boolean;
+    sour?: boolean;
+    bitter?: boolean;
+    savory?: boolean;
+  };
+  notificationSettings?: {
+    email?: boolean;
+    promotions?: boolean;
+    orderUpdates?: boolean;
+  };
 }
 
 @Entity("users")
@@ -41,8 +61,20 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ type: "json", nullable: true })
+  preferences: UserPreferences;
+
+  @OneToMany(() => Cart, cart => cart.user)
+  carts: Cart[];
+
   @OneToMany(() => Order, order => order.user)
   orders: Order[];
+
+  @OneToMany(() => UserBehavior, behavior => behavior.user)
+  behaviors: UserBehavior[];
+
+  @OneToMany(() => UserPreference, preference => preference.user)
+  userPreferences: UserPreference[];
 
   @OneToMany(() => Address, address => address.user)
   addresses: Address[];

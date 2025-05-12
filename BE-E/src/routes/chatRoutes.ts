@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { sendMessage, getChatHistory, getAllChatLogs } from "../controllers/chatController";
+import { sendMessage, getChatHistory, getAllChatLogs, analyzeUserIntent } from "../controllers/chatController";
 import { handleAIQuery, generateAIAnswer } from "../controllers/aiController";
 import { authenticateToken, authorizeAdmin } from "../middlewares/authMiddleware";
 import { AppDataSource } from "../data-source";
@@ -8,6 +8,9 @@ const router = Router();
 
 // Route công khai để gửi tin nhắn (không yêu cầu đăng nhập)
 router.post("/message", sendMessage);
+
+// Route để phân tích ý định người dùng
+router.post("/analyze-intent", analyzeUserIntent);
 
 // Route cần xác thực để lấy lịch sử chat
 router.get("/history", authenticateToken, getChatHistory);

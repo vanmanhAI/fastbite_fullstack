@@ -143,7 +143,7 @@ export const handleVnpayReturn = async (req: Request, res: Response) => {
 
       // Cập nhật đơn hàng
       order.paymentStatus = PaymentStatus.COMPLETED;
-      order.status = OrderStatus.PROCESSING;
+      order.status = OrderStatus.APPROVED;
       await orderRepository.save(order);
 
       // Chuyển hướng về trang thành công

@@ -136,7 +136,7 @@ export const checkPaymentStatus = async (req: Request, res: Response) => {
       // Cập nhật trạng thái đơn hàng
       const order = payment.order;
       order.paymentStatus = PaymentStatus.COMPLETED;
-      order.status = OrderStatus.PROCESSING;
+      order.status = OrderStatus.APPROVED;
       await orderRepository.save(order);
 
       return res.status(200).json({
@@ -227,7 +227,7 @@ const handleSuccessfulPayment = async (session: Stripe.Checkout.Session) => {
       const order = await orderRepository.findOneBy({ id: parseInt(orderId) });
       if (order) {
         order.paymentStatus = PaymentStatus.COMPLETED;
-        order.status = OrderStatus.PROCESSING;
+        order.status = OrderStatus.APPROVED;
         await orderRepository.save(order);
       }
     }

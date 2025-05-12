@@ -1,19 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, Index } from "typeorm";
 import { User } from "./User";
 import { Product } from "./Product";
 import { Order } from "./Order";
 
 @Entity("reviews")
+@Index(["userId", "productId", "orderId"], { unique: true })
 export class Review {
-  @PrimaryGeneratedColumn({ type: "int" })
+  @PrimaryGeneratedColumn()
   id!: number;
-
-  @Column({ name: "product_id" })
-  productId!: number;
-
-  @ManyToOne(() => Product, product => product.reviews)
-  @JoinColumn({ name: "product_id" })
-  product!: Product;
 
   @Column({ name: "user_id" })
   userId!: number;
@@ -21,6 +15,13 @@ export class Review {
   @ManyToOne(() => User, user => user.reviews)
   @JoinColumn({ name: "user_id" })
   user!: User;
+
+  @Column({ name: "product_id" })
+  productId!: number;
+
+  @ManyToOne(() => Product, product => product.reviews)
+  @JoinColumn({ name: "product_id" })
+  product!: Product;
 
   @Column({ name: "order_id", nullable: true })
   orderId!: number | null;
@@ -32,9 +33,12 @@ export class Review {
   @Column({ type: "tinyint" })
   rating!: number;
 
-  @Column({ type: "text", nullable: true })
+  @Column({ type: "text" })
   comment!: string;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
+
+  @UpdateDateColumn({ name: "updated_at" })
+  updatedAt!: Date;
 } 
