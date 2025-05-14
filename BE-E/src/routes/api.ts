@@ -12,6 +12,7 @@ router.post('/recommendations/track-search', authenticateToken, recommendationCo
 router.post('/recommendations/track-category', authenticateToken, recommendationController.trackCategoryClick);
 router.post('/recommendations/track-view-from-search', authenticateToken, recommendationController.trackProductViewFromSearch);
 router.post('/recommendations/track-like', authenticateToken, recommendationController.trackProductLike);
+router.post('/recommendations/track-add-to-cart', authenticateToken, recommendationController.trackAddToCart);
 router.get('/recommendations/:userId', authenticateToken, recommendationController.getRecommendedProducts);
 router.get('/recommendations/:userId/search-based', authenticateToken, recommendationController.getRecommendationsBySearch);
 router.get('/recommendations/:userId/personalization', authenticateToken, recommendationController.getChatPersonalization);

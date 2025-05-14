@@ -3,6 +3,8 @@ import { sendMessage, getChatHistory, getAllChatLogs, analyzeUserIntent } from "
 import { handleAIQuery, generateAIAnswer } from "../controllers/aiController";
 import { authenticateToken, authorizeAdmin } from "../middlewares/authMiddleware";
 import { AppDataSource } from "../data-source";
+import * as chatController from "../controllers/chatController";
+import { classifyEnhancedUserIntent } from "../services/enhancedIntentClassifier";
 
 const router = Router();
 
@@ -11,6 +13,36 @@ router.post("/message", sendMessage);
 
 // Route để phân tích ý định người dùng
 router.post("/analyze-intent", analyzeUserIntent);
+
+// Route để kiểm tra phiên bản nâng cao của phân tích ý định
+router.post("/test-enhanced-intent", async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng cung cấp tin nhắn"
+      });
+    }
+    
+    const enhancedIntent = await classifyEnhancedUserIntent(message);
+    
+    return res.status(200).json({
+      success: true,
+      intent: enhancedIntent.intent,
+      confidence: enhancedIntent.confidence,
+      entities: enhancedIntent.entities,
+      message: `Bộ phân loại nâng cao đã xác định đây là ý định: ${enhancedIntent.intent}`
+    });
+  } catch (error) {
+    console.error("Lỗi khi test phân loại ý định nâng cao:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi phân tích ý định"
+    });
+  }
+});
 
 // Route cần xác thực để lấy lịch sử chat
 router.get("/history", authenticateToken, getChatHistory);
@@ -117,5 +149,8 @@ router.get("/db-test", async (req, res) => {
     });
   }
 });
+
+// Gửi đề xuất cá nhân hóa cho chatbot
+router.get("/recommendations", authenticateToken, chatController.getPersonalizedRecommendations);
 
 export default router; 

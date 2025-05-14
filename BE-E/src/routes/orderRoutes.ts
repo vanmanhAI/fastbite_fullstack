@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateToken, authorizeAdmin } from "../middlewares/authMiddleware";
-import { OrderController, getAllOrders, updateOrderStatus } from "../controllers/orderController";
+import { OrderController, getAllOrders, updateOrderStatus } from "../controllers/OrderController";
 import { validate } from "../middlewares/validationMiddleware";
 import { createOrderValidator } from "../validators/orderValidators";
 

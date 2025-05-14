@@ -3,60 +3,182 @@ import { User, UserPreferences } from '../models/User';
 import { Product } from '../models/Product';
 import { Order } from '../models/Order';
 import { Category } from '../models/Category';
-import { extractKeywords, categorizeKeywords } from '../utils/textProcessing';
+import { categorizeKeywords } from '../utils/textProcessing';
 import logger from '../config/logger';
+import { OrderItem } from '../models/OrderItem';
+import { In } from 'typeorm';
 
 // Interface định nghĩa cấu trúc của ý định người dùng
 export interface UserIntent {
-  type: 'food_recommendation' | 'order_status' | 'menu_query' | 'greeting' | 'complaint' | 'general_query';
+  intent: 'recommendation' | 'food_recommendation' | 'product_search' | 'order_status' | 'category_search' | 'general';
   confidence: number;
-  keywords: string[];
-  context?: any;
+  entities: any;
 }
 
-// Hàm phân tích ý định dựa trên tin nhắn và dữ liệu của người dùng
-export const classifyUserIntent = async (userId: number | null, message: string): Promise<UserIntent> => {
+// Hàm kiểm tra nếu văn bản chứa ít nhất một từ khóa trong danh sách
+function containsAny(text: string, keywords: string[]): boolean {
+  return keywords.some(keyword => text.includes(keyword));
+}
+
+// Hàm phát hiện danh mục từ text
+async function detectCategory(message: string): Promise<string | null> {
   try {
-    // Trích xuất từ khóa từ tin nhắn
-    const keywords = extractKeywords(message);
+    const lowerMsg = message.toLowerCase();
+    const categoryRepository = AppDataSource.getRepository(Category);
+    const categories = await categoryRepository.find();
     
-    // Phân tích ý định dựa trên từ khóa
-    const intent = keywordBasedIntentClassification(message, keywords);
-    
-    // Nếu là yêu cầu gợi ý món ăn, bổ sung thông tin từ người dùng
-    if (intent.type === 'food_recommendation' && userId) {
-      try {
-        // Lấy thông tin ưu tiên của người dùng
-        const userRepository = AppDataSource.getRepository(User);
-        const user = await userRepository.findOne({
-          where: { id: userId },
-          select: ['preferences']
-        });
-        
-        if (user) {
-          // Lấy danh mục món ăn đã đặt nhiều nhất
-          const mostOrderedCategories = await getMostOrderedCategories(userId);
-          
-          intent.context = {
-            userPreferences: user.preferences || {},
-            previousOrders: mostOrderedCategories
-          };
-        }
-      } catch (userError) {
-        logger.error('Lỗi lấy thông tin người dùng:', userError);
+    for (const category of categories) {
+      if (lowerMsg.includes(category.name.toLowerCase())) {
+        return category.name;
       }
     }
     
-    return intent;
-    
+    return null;
   } catch (error) {
-    logger.error('Lỗi trong quá trình phân loại ý định:', error);
+    console.error('Lỗi khi phát hiện danh mục:', error);
+    return null;
+  }
+}
+
+// Trích xuất từ khóa từ văn bản
+function extractKeywords(text: string): string[] {
+  // Phân tích cụm từ quan trọng trước
+  const phrases = [];
+  if (text.includes('muốn ăn')) phrases.push('muốn ăn');
+  if (text.includes('thích ăn')) phrases.push('thích ăn');
+  if (text.includes('món ngon')) phrases.push('món ngon');
+  if (text.includes('gợi ý món')) phrases.push('gợi ý món');
+  
+  // Sau đó tách thành các từ đơn lẻ
+  const singleWords = text.split(' ')
+    .filter(word => word.length > 3)
+    .filter(word => !['đang', 'không', 'được', 'những', 'nhưng', 'rằng', 'hoặc', 'cho', 'các', 'với'].includes(word));
+  
+  return [...phrases, ...singleWords];
+}
+
+// Trích xuất thực thể từ văn bản
+function extractEntities(text: string): any {
+  const entities: any = {
+    keywords: extractKeywords(text),
+    context: {}
+  };
+  
+  // Phát hiện các thực thể về thời gian
+  if (text.includes('sáng') || text.includes('buổi sáng')) {
+    entities.timeOfDay = 'breakfast';
+  } else if (text.includes('trưa') || text.includes('buổi trưa')) {
+    entities.timeOfDay = 'lunch';
+  } else if (text.includes('tối') || text.includes('buổi tối')) {
+    entities.timeOfDay = 'dinner';
+  }
+  
+  // Phát hiện vị giác
+  const tasteKeywords = {
+    cay: ['cay', 'ớt', 'spicy'],
+    ngọt: ['ngọt', 'đường', 'sweet'],
+    mặn: ['mặn', 'muối', 'salty'],
+    chua: ['chua', 'chanh', 'sour'],
+    đắng: ['đắng', 'bitter'],
+    umami: ['umami', 'đậm đà']
+  };
+  
+  for (const [taste, keywords] of Object.entries(tasteKeywords)) {
+    if (keywords.some(keyword => text.includes(keyword))) {
+      entities.taste = taste;
+      break;
+    }
+  }
+  
+  return entities;
+}
+
+// Cải thiện phương thức phân loại ý định để nhận diện câu hỏi về sở thích
+export const classifyUserIntent = async (message: string): Promise<UserIntent> => {
+  const lowerMsg = message.toLowerCase();
+  
+  // Mảng các từ khóa theo loại ý định
+  const intentKeywords = {
+    recommendation: [
+      'đề xuất', 'gợi ý', 'recommend', 'món gì', 'có món',
+      'ăn gì', 'món nào', 'ngon không', 'có gì ngon'
+    ],
+    food_recommendation: [
+      'muốn ăn', 'thích ăn', 'gợi ý món', 'đề xuất món',
+      'món ngon', 'nên ăn gì', 'ăn gì ngon', 'món gì ngon',
+      'có món gì', 'món tôi thích', 'món phù hợp'
+    ],
+    preference_query: [
+      'tôi thích', 'tôi ưa thích', 'tôi hay', 'thích gì', 
+      'biết tôi thích', 'sở thích', 'tôi thường', 'tôi hay dùng',
+      'tôi hay mua', 'tôi hay ăn', 'tôi hay uống'
+    ]
+  };
+  
+  // Kiểm tra các cụm từ ưu tiên về sở thích người dùng
+  if (containsAny(lowerMsg, intentKeywords.preference_query)) {
+    // Nếu có từ khóa về sở thích, ưu tiên phân loại là recommendation
     return {
-      type: 'general_query',
-      confidence: 0.3,
-      keywords: extractKeywords(message)
+      intent: 'recommendation',
+      confidence: 0.85,
+      entities: extractEntities(lowerMsg)
     };
   }
+  
+  // Ưu tiên kiểm tra cụm từ về đề xuất món ăn
+  if (containsAny(lowerMsg, intentKeywords.food_recommendation)) {
+    return {
+      intent: 'food_recommendation',
+      confidence: 0.88,
+      entities: extractEntities(lowerMsg)
+    };
+  }
+  
+  // Kiểm tra các từ đơn về đề xuất/gợi ý
+  if (containsAny(lowerMsg, intentKeywords.recommendation)) {
+    return {
+      intent: 'recommendation',
+      confidence: 0.82,
+      entities: extractEntities(lowerMsg)
+    };
+  }
+  
+  // Phát hiện category chỉ khi không phải truy vấn về sở thích
+  const flattenedKeywords = [
+    ...intentKeywords.preference_query,
+    ...intentKeywords.recommendation,
+    ...intentKeywords.food_recommendation
+  ];
+  
+  if (!containsAny(lowerMsg, flattenedKeywords)) {
+    const detectedCategory = await detectCategory(lowerMsg);
+    if (detectedCategory) {
+      return {
+        intent: 'category_search',
+        confidence: 0.7,
+        entities: {
+          category: detectedCategory,
+          ...extractEntities(lowerMsg)
+        }
+      };
+    }
+  }
+  
+  // Kiểm tra ý định tìm kiếm sản phẩm
+  if (containsAny(lowerMsg, ['tìm', 'kiếm', 'search', 'lookup', 'món', 'đồ ăn'])) {
+    return {
+      intent: 'product_search',
+      confidence: 0.75,
+      entities: extractEntities(lowerMsg)
+    };
+  }
+  
+  // Mặc định là ý định general
+  return {
+    intent: 'general',
+    confidence: 0.5,
+    entities: extractEntities(lowerMsg)
+  };
 };
 
 // Phân tích dựa trên từ khóa
@@ -77,7 +199,7 @@ function keywordBasedIntentClassification(message: string, keywords: string[]): 
     menu_query: 0,
     greeting: 0,
     complaint: 0,
-    general_query: 0
+    general: 0
   };
   
   // Đếm số từ khóa khớp với mỗi loại ý định
@@ -100,20 +222,22 @@ function keywordBasedIntentClassification(message: string, keywords: string[]): 
   }
   
   // Tìm loại ý định có số từ khóa khớp cao nhất
-  const intentEntries = Object.entries(matchCount) as [UserIntent['type'], number][];
+  // Sửa lỗi kiểu dữ liệu không khớp
+  type ValidIntent = UserIntent['intent'];
+  const intentEntries = Object.entries(matchCount) as [ValidIntent, number][];
   const maxIntent = intentEntries.reduce(
     (max, current) => (current[1] > max[1] ? current : max),
-    ['general_query', 0] as [UserIntent['type'], number]
+    ['general', 0] as [ValidIntent, number]
   );
   
-  // Nếu không có từ khóa nào khớp, coi là general_query
-  const intentType = maxIntent[1] > 0 ? maxIntent[0] : 'general_query';
+  // Nếu không có từ khóa nào khớp, coi là general
+  const intentType: ValidIntent = maxIntent[1] > 0 ? maxIntent[0] : 'general';
   const confidence = maxIntent[1] > 0 ? Math.min(0.5 + maxIntent[1] * 0.1, 0.9) : 0.4;
   
   return {
-    type: intentType,
+    intent: intentType,
     confidence,
-    keywords
+    entities: extractEntities(message)
   };
 }
 
@@ -168,16 +292,16 @@ export async function getRecommendedProducts(intent: UserIntent): Promise<Produc
       .where('product.isActive = :active', { active: true });
     
     // Nếu có từ khóa liên quan đến thực phẩm, tìm sản phẩm phù hợp
-    if (intent.type === 'food_recommendation' && intent.keywords.length > 0) {
+    if (intent.intent === 'food_recommendation' && intent.entities.keywords.length > 0) {
       // Tìm theo từ khóa
-      const keywordConditions = intent.keywords.map(keyword => 
-        `(product.name LIKE :keyword${intent.keywords.indexOf(keyword)} 
-         OR product.description LIKE :keyword${intent.keywords.indexOf(keyword)}
-         OR product.tags LIKE :keyword${intent.keywords.indexOf(keyword)})`
+      const keywordConditions = intent.entities.keywords.map(keyword => 
+        `(product.name LIKE :keyword${intent.entities.keywords.indexOf(keyword)} 
+         OR product.description LIKE :keyword${intent.entities.keywords.indexOf(keyword)}
+         OR product.tags LIKE :keyword${intent.entities.keywords.indexOf(keyword)})`
       ).join(' OR ');
       
       const keywordParams: Record<string, string> = {};
-      intent.keywords.forEach((keyword, index) => {
+      intent.entities.keywords.forEach((keyword, index) => {
         keywordParams[`keyword${index}`] = `%${keyword}%`;
       });
       
@@ -185,8 +309,8 @@ export async function getRecommendedProducts(intent: UserIntent): Promise<Produc
     }
     
     // Nếu có thông tin người dùng, sử dụng để cá nhân hóa kết quả
-    if (intent.context?.userPreferences) {
-      const preferences = intent.context.userPreferences as UserPreferences;
+    if (intent.entities.context?.userPreferences) {
+      const preferences = intent.entities.context.userPreferences as UserPreferences;
       
       // Ưu tiên theo danh mục yêu thích
       if (preferences.favoriteCategories && preferences.favoriteCategories.length > 0) {
@@ -242,7 +366,7 @@ export class IntentClassifierService {
     PRICE_CHECK: 'price_check',           // Kiểm tra giá
     FEATURE_SEARCH: 'feature_search',     // Tìm kiếm theo tính năng/thuộc tính
     RECOMMENDATION: 'recommendation',      // Mong muốn đề xuất
-    GENERAL_QUERY: 'general_query'        // Truy vấn chung/không xác định
+    GENERAL_QUERY: 'general'              // Truy vấn chung/không xác định - đã sửa thành 'general'
   };
 
   /**

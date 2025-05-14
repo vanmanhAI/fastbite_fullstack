@@ -1,0 +1,452 @@
+import { AppDataSource } from "../config/database";
+import { UserBehavior, BehaviorType } from "../models/UserBehavior";
+import { Product } from "../models/Product";
+import { User } from "../models/User";
+import { Category } from "../models/Category";
+import { In } from "typeorm";
+import logger from "../config/logger";
+
+export class RecommendationEngineService {
+  private userBehaviorRepository = AppDataSource.getRepository(UserBehavior);
+  private productRepository = AppDataSource.getRepository(Product);
+  private userRepository = AppDataSource.getRepository(User);
+  private categoryRepository = AppDataSource.getRepository(Category);
+
+  // Trọng số động cho các loại hành vi
+  private behaviorWeights = {
+    purchase: 6.0,
+    view: 0.8,
+    like: 3.0,
+    cart: 5.0,
+    review: 4.5,
+    search: 1.5,
+    category_click: 1.2
+  };
+
+  /**
+   * Tạo ma trận đặc trưng người dùng từ hành vi
+   */
+  async generateUserFeatureVector(userId: number): Promise<{
+    favoriteCategories: Map<number, number>,
+    productPreferences: Map<number, number>,
+    recentInterests: string[]
+  }> {
+    // Lấy hành vi trong 30 ngày gần nhất
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const behaviors = await this.userBehaviorRepository.find({
+      where: { userId },
+      relations: ["product", "product.categories"],
+      order: { createdAt: "DESC" },
+      take: 200 // Lấy nhiều hơn để có đủ dữ liệu
+    });
+
+    const favoriteCategories = new Map<number, number>();
+    const productPreferences = new Map<number, number>();
+    const recentSearchTerms: string[] = [];
+
+    behaviors.forEach(behavior => {
+      // Tính toán hệ số thời gian (hành vi gần đây quan trọng hơn)
+      const daysSinceAction = (Date.now() - behavior.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+      const timeDecay = Math.exp(-daysSinceAction / 10); // Suy giảm theo thời gian
+      
+      // Xử lý theo loại hành vi
+      switch (behavior.behaviorType) {
+        case BehaviorType.PURCHASE:
+          if (behavior.productId) {
+            const weight = this.behaviorWeights.purchase * behavior.count * timeDecay;
+            productPreferences.set(
+              behavior.productId, 
+              (productPreferences.get(behavior.productId) || 0) + weight
+            );
+            
+            // Cập nhật trọng số danh mục
+            if (behavior.product?.categories) {
+              behavior.product.categories.forEach(category => {
+                favoriteCategories.set(
+                  category.id, 
+                  (favoriteCategories.get(category.id) || 0) + (weight * 0.5)
+                );
+              });
+            }
+          }
+          break;
+        
+        case BehaviorType.VIEW:
+          if (behavior.productId) {
+            const weight = this.behaviorWeights.view * Math.log(behavior.count + 1) * timeDecay;
+            productPreferences.set(
+              behavior.productId, 
+              (productPreferences.get(behavior.productId) || 0) + weight
+            );
+            
+            // Cập nhật danh mục
+            if (behavior.product?.categories) {
+              behavior.product.categories.forEach(category => {
+                favoriteCategories.set(
+                  category.id, 
+                  (favoriteCategories.get(category.id) || 0) + (weight * 0.3)
+                );
+              });
+            }
+          }
+          break;
+          
+        case BehaviorType.LIKE:
+          if (behavior.productId) {
+            const weight = this.behaviorWeights.like * timeDecay;
+            productPreferences.set(
+              behavior.productId, 
+              (productPreferences.get(behavior.productId) || 0) + weight
+            );
+            
+            // Cập nhật danh mục
+            if (behavior.product?.categories) {
+              behavior.product.categories.forEach(category => {
+                favoriteCategories.set(
+                  category.id, 
+                  (favoriteCategories.get(category.id) || 0) + (weight * 0.4)
+                );
+              });
+            }
+          }
+          break;
+        
+        case BehaviorType.ADD_TO_CART:
+          if (behavior.productId) {
+            const weight = this.behaviorWeights.cart * timeDecay;
+            productPreferences.set(
+              behavior.productId, 
+              (productPreferences.get(behavior.productId) || 0) + weight
+            );
+            
+            // Cập nhật danh mục
+            if (behavior.product?.categories) {
+              behavior.product.categories.forEach(category => {
+                favoriteCategories.set(
+                  category.id, 
+                  (favoriteCategories.get(category.id) || 0) + (weight * 0.3)
+                );
+              });
+            }
+          }
+          break;
+        
+        case BehaviorType.SEARCH:
+          try {
+            if (behavior.data) {
+              const searchData = JSON.parse(behavior.data);
+              if (searchData.query) {
+                recentSearchTerms.push(searchData.query);
+              }
+              
+              // Lưu trọng số cho sản phẩm đã click từ tìm kiếm
+              if (searchData.clickedProductIds && Array.isArray(searchData.clickedProductIds)) {
+                searchData.clickedProductIds.forEach((productId: number) => {
+                  const weight = this.behaviorWeights.search * timeDecay;
+                  productPreferences.set(
+                    productId, 
+                    (productPreferences.get(productId) || 0) + weight
+                  );
+                });
+              }
+              
+              // Lưu trọng số cho danh mục từ tìm kiếm
+              if (searchData.relatedCategoryIds && Array.isArray(searchData.relatedCategoryIds)) {
+                searchData.relatedCategoryIds.forEach((categoryId: number) => {
+                  const weight = this.behaviorWeights.search * 0.4 * timeDecay;
+                  favoriteCategories.set(
+                    categoryId, 
+                    (favoriteCategories.get(categoryId) || 0) + weight
+                  );
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Lỗi phân tích dữ liệu tìm kiếm:", e);
+          }
+          break;
+        
+        case BehaviorType.CLICK_CATEGORY:
+          try {
+            if (behavior.data) {
+              const data = JSON.parse(behavior.data);
+              if (data.categoryId) {
+                const weight = this.behaviorWeights.category_click * timeDecay;
+                favoriteCategories.set(
+                  data.categoryId, 
+                  (favoriteCategories.get(data.categoryId) || 0) + weight
+                );
+              }
+            }
+          } catch (e) {
+            console.error("Lỗi phân tích dữ liệu nhấp danh mục:", e);
+          }
+          break;
+      }
+    });
+
+    return {
+      favoriteCategories,
+      productPreferences,
+      recentInterests: recentSearchTerms.slice(0, 10)
+    };
+  }
+
+  /**
+   * Lấy sản phẩm tương tự với sản phẩm đã cho
+   */
+  async getSimilarProducts(productId: number, limit = 5): Promise<Product[]> {
+    try {
+      // Lấy sản phẩm gốc với danh mục
+      const product = await this.productRepository.findOne({
+        where: { id: productId },
+        relations: ["categories"]
+      });
+      
+      if (!product || !product.categories || product.categories.length === 0) {
+        return [];
+      }
+      
+      // Lấy các sản phẩm cùng danh mục
+      const categoryIds = product.categories.map(c => c.id);
+      
+      const similarProducts = await this.productRepository
+        .createQueryBuilder("product")
+        .leftJoinAndSelect("product.categories", "category")
+        .where("product.id != :productId", { productId })
+        .andWhere("product.isActive = :isActive", { isActive: true })
+        .andWhere("category.id IN (:...categoryIds)", { categoryIds })
+        .orderBy("product.rating", "DESC")
+        .limit(limit)
+        .getMany();
+        
+      return similarProducts;
+    } catch (error) {
+      logger.error(`Lỗi khi lấy sản phẩm tương tự: ${error}`);
+      return [];
+    }
+  }
+
+  /**
+   * Tạo đề xuất cá nhân hóa nâng cao
+   */
+  async getEnhancedPersonalizedRecommendations(
+    userId: number,
+    query = "",
+    limit = 10
+  ): Promise<any> {
+    try {
+      // Kiểm tra số lượng hành vi của người dùng
+      const userBehaviorCount = await this.userBehaviorRepository.count({
+        where: { userId }
+      });
+
+      // Nếu là người dùng mới, trả về sản phẩm phổ biến
+      if (userBehaviorCount === 0) {
+        logger.info(`[RECOMMENDATION] User ${userId} là người dùng mới, trả về sản phẩm phổ biến`);
+        
+        const popularProducts = await this.productRepository.find({
+          where: { isActive: true },
+          order: { rating: "DESC", numReviews: "DESC" },
+          take: limit
+        });
+
+        return {
+          success: true,
+          products: popularProducts.map(p => ({
+            id: p.id,
+            name: p.name,
+            imageUrl: p.imageUrl || '/images/placeholder-food.jpg',
+            price: p.price,
+            description: p.description,
+            stock: p.stock,
+            reasoning: "Sản phẩm phổ biến được nhiều người ưa thích",
+            confidence: 0.6
+          })),
+          reasonings: ["Sản phẩm phổ biến được nhiều người ưa thích"],
+          isNewUser: true
+        };
+      }
+
+      // 1. Phân tích hành vi người dùng và tạo user vector
+      const userVector = await this.generateUserFeatureVector(userId);
+      
+      // 2. Lấy thông tin người dùng (sở thích, giới hạn)
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        select: ['preferences']
+      });
+      
+      // 3. Tạo truy vấn SQL động để lấy sản phẩm phù hợp
+      let productsQuery = this.productRepository
+        .createQueryBuilder('product')
+        .leftJoinAndSelect('product.categories', 'category')
+        .where('product.isActive = :isActive', { isActive: true });
+      
+      // 4. Tăng cường truy vấn với thông tin cá nhân
+      
+      // 4.1 Thêm điều kiện từ truy vấn tìm kiếm người dùng
+      if (query) {
+        productsQuery = productsQuery.andWhere(
+          '(LOWER(product.name) LIKE :query OR LOWER(product.description) LIKE :query OR LOWER(product.tags) LIKE :query)',
+          { query: `%${query.toLowerCase()}%` }
+        );
+      }
+      
+      // 4.2 Áp dụng giới hạn từ user preferences nếu có
+      if (user?.preferences?.dietaryRestrictions?.length > 0) {
+        const restrictions = user.preferences.dietaryRestrictions;
+        const restrictionTerms = [];
+        
+        if (restrictions.includes('vegetarian')) {
+          restrictionTerms.push('NOT LOWER(product.tags) LIKE :vegetarian');
+          productsQuery.setParameter('vegetarian', '%meat%');
+        }
+        
+        if (restrictions.includes('no_spicy')) {
+          restrictionTerms.push('NOT LOWER(product.tags) LIKE :spicy');
+          productsQuery.setParameter('spicy', '%cay%');
+        }
+        
+        if (restrictionTerms.length > 0) {
+          productsQuery.andWhere(`(${restrictionTerms.join(' AND ')})`);
+        }
+      }
+      
+      // 5. Tính điểm đề xuất dựa trên nhiều yếu tố
+      // Lấy tất cả sản phẩm tiềm năng
+      const products = await productsQuery.getMany();
+      
+      // 5.1 Lấy thêm các sản phẩm tương tự từ các sản phẩm ưa thích nhất của người dùng
+      const topUserProducts = [...userVector.productPreferences.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(entry => entry[0]);
+        
+      // Thêm sản phẩm tương tự vào danh sách xem xét
+      const similarProductsSet = new Set<number>();
+      for (const productId of topUserProducts) {
+        const similarProducts = await this.getSimilarProducts(productId, 2);
+        similarProducts.forEach(p => similarProductsSet.add(p.id));
+      }
+      
+      // Lấy thông tin đầy đủ của các sản phẩm tương tự
+      if (similarProductsSet.size > 0) {
+        const similarProductsArray = Array.from(similarProductsSet);
+        const similarProductsData = await this.productRepository.find({
+          where: { id: In(similarProductsArray), isActive: true }
+        });
+        
+        // Thêm vào danh sách sản phẩm để đánh giá
+        products.push(...similarProductsData);
+      }
+      
+      // Tính điểm đề xuất cho mỗi sản phẩm
+      const productIdSet = new Set<number>(); // Để tránh trùng lặp
+      const scoredProducts = products
+        .filter(product => {
+          // Loại bỏ sản phẩm trùng lặp
+          if (productIdSet.has(product.id)) return false;
+          productIdSet.add(product.id);
+          return true;
+        })
+        .map(product => {
+          let score = 0;
+          const reasons: string[] = [];
+          
+          // 5.1 Điểm từ hành vi trực tiếp
+          if (userVector.productPreferences.has(product.id)) {
+            const behaviorScore = userVector.productPreferences.get(product.id)!;
+            score += behaviorScore * 5; // Trọng số cao cho hành vi trực tiếp
+            reasons.push("bạn đã tương tác trước đây");
+          }
+          
+          // 5.2 Điểm từ danh mục ưa thích
+          if (product.categories?.length > 0) {
+            let categoryScore = 0;
+            for (const category of product.categories) {
+              if (userVector.favoriteCategories.has(category.id)) {
+                categoryScore += userVector.favoriteCategories.get(category.id)! * 2;
+              }
+            }
+            
+            if (categoryScore > 0) {
+              score += categoryScore;
+              reasons.push("thuộc danh mục bạn quan tâm");
+            }
+          }
+          
+          // 5.3 Điểm từ keywords trong tìm kiếm gần đây
+          if (userVector.recentInterests.length > 0) {
+            // Tìm kiếm từ khóa trong tên sản phẩm, mô tả, tags
+            const productText = `${product.name} ${product.description || ''} ${product.tags || ''}`.toLowerCase();
+            
+            for (const term of userVector.recentInterests) {
+              if (productText.includes(term.toLowerCase())) {
+                score += 1.5;
+                reasons.push("phù hợp với tìm kiếm gần đây của bạn");
+                break;
+              }
+            }
+          }
+          
+          // 5.4 Điểm từ mức độ phổ biến (giúp khám phá đối với người dùng mới)
+          score += (product.rating || 3) * 0.2 + (Math.log(product.numReviews || 1) * 0.1);
+          
+          // 5.5 Điểm từ tính tương tự (nếu là sản phẩm tương tự với sản phẩm ưa thích)
+          if (similarProductsSet.has(product.id)) {
+            score += 2;
+            reasons.push("tương tự với sản phẩm bạn thích");
+          }
+          
+          return {
+            ...product,
+            score,
+            reasoning: reasons.length > 0 
+              ? `Được đề xuất vì đây là sản phẩm ${reasons.join(" và ")}`
+              : "Sản phẩm phổ biến có thể phù hợp với bạn"
+          };
+        });
+      
+      // 6. Sắp xếp và trả về kết quả
+      const recommendedProducts = scoredProducts
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+      
+      // Log để theo dõi
+      logger.info(`[ENHANCED RECOMMENDATION] User ${userId} - Đề xuất ${recommendedProducts.length} sản phẩm`);
+      recommendedProducts.forEach((p, i) => {
+        logger.info(`  ${i+1}. ${p.name} - Điểm: ${p.score.toFixed(2)} - Lý do: ${p.reasoning}`);
+      });
+      
+      return {
+        success: true,
+        products: recommendedProducts.map(p => ({
+          id: p.id,
+          name: p.name,
+          imageUrl: p.imageUrl || '/images/placeholder-food.jpg',
+          price: p.price,
+          description: p.description || '',
+          stock: p.stock || 100,
+          rating: p.rating,
+          reasoning: p.reasoning,
+          confidence: Math.min(0.95, p.score / 10) // Chuyển đổi điểm thành độ tự tin
+        })),
+        reasonings: Array.from(new Set(recommendedProducts.flatMap(p => {
+          const reasons = p.reasoning.replace("Được đề xuất vì đây là sản phẩm ", "").split(" và ");
+          return reasons;
+        }))),
+        isNewUser: false
+      };
+    } catch (error) {
+      logger.error(`Lỗi trong hệ thống đề xuất nâng cao: ${error}`);
+      return {
+        success: false,
+        error: "Không thể tạo đề xuất cá nhân hóa",
+        products: []
+      };
+    }
+  }
+} 
