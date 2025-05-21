@@ -1,28 +1,29 @@
 import { Not, IsNull, Like, In } from "typeorm";
 import { UserBehavior, BehaviorType } from "../models/UserBehavior";
-import { UserPreference, PreferenceType } from "../models/UserPreference";
-import { ProductLike } from "../models/ProductLike";
 import { Product } from "../models/Product";
 import { Category } from "../models/Category";
 import { AppDataSource } from "../config/database";
 import { extractKeywords } from "../utils/textProcessing";
+import { ProductLike } from "../models/ProductLike";
+import { User } from "../models/User";
+import { ILike, MoreThan } from "typeorm";
+import { calculateSimilarity, analyzeSentiment } from "../utils/textProcessing";
 
 export class UserBehaviorService {
   private userBehaviorRepository = AppDataSource.getRepository(UserBehavior);
-  private preferenceRepository = AppDataSource.getRepository(UserPreference);
   private productLikeRepository = AppDataSource.getRepository(ProductLike);
   private productRepository = AppDataSource.getRepository(Product);
   private categoryRepository = AppDataSource.getRepository(Category);
 
   // Các trọng số mặc định cho các loại hành vi
   private behaviorWeights = {
-    [BehaviorType.VIEW]: 0.8,           // Tăng từ 0.5 lên 0.8
-    [BehaviorType.LIKE]: 1.5,           // Tăng trọng số thích lên 1.5
+    [BehaviorType.VIEW]: 1.0,           // Tăng từ 0.5 lên 0.8
+    [BehaviorType.LIKE]: 5.0,           // Tăng trọng số thích lên 1.5
     [BehaviorType.ADD_TO_CART]: 3.0,    // Tăng trọng số giỏ hàng từ 2.5 lên 3.0
-    [BehaviorType.PURCHASE]: 3.5,       // Tăng mạnh trọng số mua hàng
-    [BehaviorType.REVIEW]: 2.0,         // Đảm bảo trọng số đánh giá cao hơn like
-    [BehaviorType.SEARCH]: 0.4,         // Giữ nguyên trọng số tìm kiếm
-    [BehaviorType.CLICK_CATEGORY]: 0.4  // Giữ nguyên trọng số click danh mục
+    [BehaviorType.PURCHASE]: 10.0,       // Tăng mạnh trọng số mua hàng
+    [BehaviorType.REVIEW]: 7.0,         // Đảm bảo trọng số đánh giá cao hơn like
+    [BehaviorType.SEARCH]: 0.5,         // Giữ nguyên trọng số tìm kiếm
+    [BehaviorType.CLICK_CATEGORY]: 1.5  // Giữ nguyên trọng số click danh mục
   };
 
   // Lưu hành vi xem sản phẩm
@@ -535,416 +536,200 @@ export class UserBehaviorService {
     error?: string;
   }> {
     try {
-      console.log(`[CHAT RECOMMENDATION] Lấy đề xuất cho user ${userId}, query: "${query}", limit: ${limit}`);
-      
-      // Kiểm tra xem người dùng có hành vi nào không
-      const userBehaviorCount = await this.userBehaviorRepository.count({
-        where: { userId }
-      });
-      
-      // Đánh dấu người dùng mới nếu không có hành vi nào
-      const isNewUser = userBehaviorCount === 0;
-      
-      // Sử dụng trọng số từ thuộc tính behaviorWeights để đảm bảo nhất quán
-      const weights = {
-        purchase: this.behaviorWeights[BehaviorType.PURCHASE],
-        like: this.behaviorWeights[BehaviorType.LIKE],
-        view: this.behaviorWeights[BehaviorType.VIEW],
-        cart: this.behaviorWeights[BehaviorType.ADD_TO_CART],
-        search: this.behaviorWeights[BehaviorType.SEARCH],
-        review: this.behaviorWeights[BehaviorType.REVIEW]
-      };
+      console.log(`[PERSONALIZER] Xử lý đề xuất cho user ${userId || 'khách'} với query: "${query}"`);
+      const reasonings: string[] = [];
+      let isNewUser = false;
 
-      // Nếu không có hành vi nào, trả về sản phẩm phổ biến với cờ isNewUser
-      if (userBehaviorCount === 0) {
-        console.log(`[CHAT RECOMMENDATION] User ${userId} là người dùng mới, trả về sản phẩm phổ biến`);
+      // Nếu không có query hoặc query quá ngắn, không thể sử dụng để tìm kiếm
+      if (!query || query.trim().length < 2) {
+        console.log("[PERSONALIZER] Query quá ngắn, sử dụng phương pháp dự phòng");
+        return await this.getFallbackRecommendations(limit);
+      }
+
+      // Làm sạch query và tách từ khóa
+      const cleanQuery = query.toLowerCase().trim();
+      console.log(`[PERSONALIZER] Query sau khi làm sạch: "${cleanQuery}"`);
+      
+      // Kiểm tra xem người dùng đã có dữ liệu hành vi chưa
+      const userBehaviorCount = await this.userBehaviorRepository.count({ where: { userId } });
+      isNewUser = userBehaviorCount < 5; // Người dùng có ít hơn 5 hành vi được xem là mới
+      
+      if (isNewUser) {
+        console.log(`[PERSONALIZER] Người dùng ${userId} là người dùng mới (${userBehaviorCount} hành vi)`);
+        reasonings.push("bạn là người dùng mới");
+      }
+
+      // BƯỚC 1: Tìm sản phẩm khớp trực tiếp với query người dùng (ưu tiên cao nhất)
+      console.log(`[PERSONALIZER] Tìm sản phẩm khớp trực tiếp với: "${cleanQuery}"`);
+      const directMatchProducts = await this.productRepository.createQueryBuilder('product')
+        .leftJoinAndSelect('product.categories', 'category')
+        .where('product.isActive = :isActive', { isActive: true })
+        .andWhere(
+          '(LOWER(product.name) LIKE :query OR LOWER(product.description) LIKE :query OR LOWER(product.tags) LIKE :query)',
+          { query: `%${cleanQuery}%` }
+        )
+        .orderBy('product.rating', 'DESC')
+        .addOrderBy('product.numReviews', 'DESC')
+        .take(limit)
+        .getMany();
+      
+      console.log(`[PERSONALIZER] Tìm thấy ${directMatchProducts.length} sản phẩm khớp trực tiếp`);
+      const directMatchIds = directMatchProducts.map(p => p.id);
+
+      // BƯỚC 2: Nếu cần thêm sản phẩm, tìm sản phẩm dựa trên hành vi người dùng
+      const remainingSlots = limit - directMatchProducts.length;
+      let behaviorBasedProducts: Product[] = [];
+      
+      if (remainingSlots > 0 && !isNewUser && userId) {
+        console.log(`[PERSONALIZER] Tìm thêm ${remainingSlots} sản phẩm dựa trên hành vi người dùng`);
         
-        const popularProducts = await this.productRepository.find({
-          where: { isActive: true },
-          order: { rating: "DESC" },
-          take: limit
+        // Lấy các hành vi gần đây nhất của người dùng
+        const userBehaviors = await this.userBehaviorRepository.find({
+          where: { userId },
+          order: { createdAt: 'DESC' },
+          take: 30
         });
+        
+        if (userBehaviors.length > 0) {
+          // Phân tích hành vi để xây dựng điểm số cho từng sản phẩm
+          const viewCounts = new Map<number, number>();
+          const likeCounts = new Map<number, number>();
+          const cartCounts = new Map<number, number>();
+          
+          for (const behavior of userBehaviors) {
+            if (behavior.behaviorType === BehaviorType.VIEW) {
+              viewCounts.set(behavior.productId, (viewCounts.get(behavior.productId) || 0) + behavior.count);
+            } else if (behavior.behaviorType === BehaviorType.LIKE) {
+              likeCounts.set(behavior.productId, (likeCounts.get(behavior.productId) || 0) + behavior.count);
+            } else if (behavior.behaviorType === BehaviorType.ADD_TO_CART) {
+              cartCounts.set(behavior.productId, (cartCounts.get(behavior.productId) || 0) + behavior.count);
+            }
+          }
+          
+          // Tính điểm tổng cho mỗi sản phẩm
+          const scores = new Map<number, number>();
+          for (const [productId, viewCount] of viewCounts) {
+            const likeCount = likeCounts.get(productId) || 0;
+            const cartCount = cartCounts.get(productId) || 0;
+            
+            // Công thức tính điểm có trọng số cao cho thêm vào giỏ và thích
+            scores.set(
+              productId,
+              viewCount * 1 + likeCount * 5 + cartCount * 10
+            );
+          }
+          
+          // Lấy các sản phẩm có điểm cao nhất
+          const topProductIds = [...scores.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, remainingSlots * 2) // Lấy nhiều hơn để lọc trùng lặp
+            .filter(([id]) => !directMatchIds.includes(id)) // Loại bỏ các ID đã có trong kết quả trực tiếp
+            .map(([id]) => id);
+          
+          if (topProductIds.length > 0) {
+            behaviorBasedProducts = await this.productRepository.createQueryBuilder('product')
+              .leftJoinAndSelect('product.categories', 'category')
+              .where('product.id IN (:...ids)', { ids: topProductIds })
+              .andWhere('product.isActive = :isActive', { isActive: true })
+              .orderBy('product.rating', 'DESC')
+              .take(remainingSlots)
+              .getMany();
+            
+            console.log(`[PERSONALIZER] Tìm thấy ${behaviorBasedProducts.length} sản phẩm dựa trên hành vi người dùng`);
+            if (behaviorBasedProducts.length > 0) {
+              reasonings.push("sở thích cá nhân của bạn");
+            }
+          }
+        }
+      }
 
-        const formattedProducts = popularProducts.map(product => ({
+      // BƯỚC 3: Nếu vẫn chưa đủ sản phẩm, thêm sản phẩm phổ biến
+      const finalRemainingSlots = limit - (directMatchProducts.length + behaviorBasedProducts.length);
+      let popularProducts: Product[] = [];
+      
+      if (finalRemainingSlots > 0) {
+        console.log(`[PERSONALIZER] Tìm thêm ${finalRemainingSlots} sản phẩm phổ biến`);
+        const existingIds = [
+          ...directMatchIds,
+          ...behaviorBasedProducts.map(p => p.id)
+        ];
+        
+        popularProducts = await this.productRepository.createQueryBuilder('product')
+          .leftJoinAndSelect('product.categories', 'category')
+          .where('product.isActive = :isActive', { isActive: true })
+          .andWhere(existingIds.length > 0 ? 'product.id NOT IN (:...existingIds)' : '1=1', 
+            existingIds.length > 0 ? { existingIds } : {})
+          .orderBy('product.rating', 'DESC')
+          .addOrderBy('product.numReviews', 'DESC')
+          .take(finalRemainingSlots)
+          .getMany();
+        
+        console.log(`[PERSONALIZER] Tìm thấy ${popularProducts.length} sản phẩm phổ biến`);
+        if (popularProducts.length > 0) {
+          reasonings.push("món ăn phổ biến của nhà hàng");
+        }
+      }
+
+      // Kết hợp tất cả kết quả - ưu tiên sản phẩm khớp trực tiếp lên đầu
+      const combinedProducts = [
+        ...directMatchProducts,
+        ...behaviorBasedProducts,
+        ...popularProducts
+      ];
+      
+      // Nếu không tìm thấy sản phẩm nào, trả về kết quả dự phòng
+      if (combinedProducts.length === 0) {
+        console.log("[PERSONALIZER] Không tìm thấy sản phẩm nào, trả về kết quả dự phòng");
+        return await this.getFallbackRecommendations(limit);
+      }
+
+      // Chuyển đổi kết quả sang định dạng phù hợp
+      const responseProducts = combinedProducts.map((product, index) => {
+        // Xác định loại gợi ý: khớp trực tiếp, dựa trên hành vi, hoặc phổ biến
+        const isDirectMatch = index < directMatchProducts.length;
+        const isBehaviorBased = index >= directMatchProducts.length && 
+                               index < (directMatchProducts.length + behaviorBasedProducts.length);
+        
+        // Điều chỉnh lý do và độ tin cậy theo loại gợi ý
+        let reasoning = "Món ăn phổ biến";
+        let confidence = 0.6;
+        
+        if (isDirectMatch) {
+          reasoning = "Phù hợp với yêu cầu của bạn";
+          confidence = 0.95;
+        } else if (isBehaviorBased) {
+          reasoning = "Dựa trên sở thích của bạn";
+          confidence = 0.8;
+        }
+        
+        return {
           id: product.id,
           name: product.name,
           price: product.price,
           imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
-          description: product.description,
-          stock: product.stock
-        }));
-
-        return {
-          success: true,
-          products: formattedProducts,
-          reasonings: ["Sản phẩm phổ biến"],
-          isNewUser: true
+          description: product.description || '',
+          stock: product.stock || 0,
+          category: product.categories?.[0]?.name || '',
+          confidence,
+          reasoning
         };
-      }
-
-      // Lấy hành vi người dùng gần đây nhất
-      const recentBehaviors = await this.userBehaviorRepository.find({
-        where: { userId },
-        order: { createdAt: "DESC" },
-        take: 50  // Tăng số lượng hành vi để phân tích chính xác hơn
-      });
-      
-      if (recentBehaviors.length === 0) {
-        // Trường hợp dự phòng nếu có count nhưng không lấy được behaviors
-        return this.getFallbackRecommendations(limit);
-      }
-
-      // Hằng số thời gian để tính trọng số dựa vào thời gian
-      const now = new Date();
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      
-      // Đánh giá sản phẩm dựa trên hành vi
-      const productScores: Record<number, { 
-        score: number; 
-        reasons: string[];
-        lastInteraction: Date;
-        interactionTypes: Set<string>;
-      }> = {};
-      
-      // Tập hợp sản phẩm đã tương tác để lấy thông tin chi tiết
-      const productIds = new Set<number>();
-      
-      // Xử lý từng hành vi và cập nhật điểm sản phẩm
-      recentBehaviors.forEach(behavior => {
-        // Chỉ xử lý hành vi liên quan đến sản phẩm
-        if (behavior.productId) {
-          productIds.add(behavior.productId);
-          
-          if (!productScores[behavior.productId]) {
-            productScores[behavior.productId] = { 
-              score: 0, 
-              reasons: [],
-              lastInteraction: behavior.createdAt,
-              interactionTypes: new Set<string>()
-            };
-          }
-          
-          // Tính số ngày kể từ lần tương tác này
-          const daysAgo = (now.getTime() - new Date(behavior.createdAt).getTime()) / millisecondsPerDay;
-          
-          // Hệ số thời gian: hành vi gần đây có trọng số cao hơn
-          const timeMultiplier = Math.exp(-daysAgo/10);
-
-          // Cập nhật thời gian tương tác cuối nếu hành vi này mới hơn
-          if (behavior.createdAt > productScores[behavior.productId].lastInteraction) {
-            productScores[behavior.productId].lastInteraction = behavior.createdAt;
-          }
-          
-          // Tính điểm theo loại hành vi
-          let behaviorWeight = 0;
-          let reason = "";
-          let behaviorTypeName = "";
-          
-          switch (behavior.behaviorType) {
-            case BehaviorType.PURCHASE:
-              behaviorWeight = weights.purchase * Math.min(behavior.count, 3) * timeMultiplier;
-              reason = "sản phẩm đã mua";
-              behaviorTypeName = "purchase";
-              break;
-              
-            case BehaviorType.LIKE:
-              behaviorWeight = weights.like * timeMultiplier;
-              reason = "sản phẩm đã thích";
-              behaviorTypeName = "like";
-              break;
-              
-            case BehaviorType.VIEW:
-              behaviorWeight = weights.view * Math.log2(behavior.count + 1) * timeMultiplier;
-              reason = "sản phẩm đã xem";
-              behaviorTypeName = "view";
-              break;
-              
-            case BehaviorType.ADD_TO_CART:
-              behaviorWeight = weights.cart * timeMultiplier;
-              reason = "sản phẩm đã thêm vào giỏ hàng";
-              behaviorTypeName = "cart";
-              break;
-              
-            case BehaviorType.REVIEW:
-              let reviewScore = weights.review;
-              try {
-                if (behavior.data) {
-                  const reviewData = JSON.parse(behavior.data);
-                  if (reviewData && reviewData.rating) {
-                    reviewScore = weights.review * (0.6 + reviewData.rating / 10);
-                  }
-                }
-              } catch (e) {
-                console.error('Lỗi khi phân tích dữ liệu đánh giá:', e);
-              }
-              
-              behaviorWeight = reviewScore * timeMultiplier;
-              reason = "sản phẩm đã đánh giá";
-              behaviorTypeName = "review";
-              break;
-          }
-
-          productScores[behavior.productId].score += behaviorWeight;
-          productScores[behavior.productId].interactionTypes.add(behaviorTypeName);
-          
-          // Chỉ thêm lý do nếu chưa có
-          if (!productScores[behavior.productId].reasons.includes(reason) && reason) {
-            productScores[behavior.productId].reasons.push(reason);
-          }
-        }
       });
 
-      if (productIds.size === 0) {
-        // Không có sản phẩm nào được tìm thấy từ hành vi
-        return this.getFallbackRecommendations(limit);
-      }
-
-      // Lấy thông tin chi tiết của các sản phẩm
-      const products = await this.productRepository.find({
-        where: { id: In([...productIds]), isActive: true },
-        relations: ["categories"]
-      });
-
-      // Thu thập thông tin danh mục
-      const categoryScores: Record<number, number> = {};
-      const topCategories: number[] = [];
-      
-      // Tính điểm danh mục từ sản phẩm đã tương tác
-      products.forEach(product => {
-        if (product.categories && product.categories.length > 0) {
-          product.categories.forEach(category => {
-            if (!categoryScores[category.id]) {
-              categoryScores[category.id] = 0;
-            }
-            categoryScores[category.id] += (productScores[product.id]?.score || 0) * 0.5;
-          });
-        }
-      });
-      
-      // Lấy top 3 danh mục được ưa thích nhất
-      if (Object.keys(categoryScores).length > 0) {
-        const sortedCategories = Object.entries(categoryScores)
-          .sort((a, b) => Number(b[1]) - Number(a[1]))
-          .slice(0, 3)
-          .map(entry => parseInt(entry[0]));
-          
-        topCategories.push(...sortedCategories);
-      }
-      
-      // Tìm thêm sản phẩm từ danh mục được ưa thích
-      try {
-        if (topCategories.length > 0) {
-          const existingProductIds = new Set(products.map(p => p.id));
-          
-          const categoryProducts = await this.productRepository
-            .createQueryBuilder("product")
-            .leftJoin("product.categories", "category")
-            .where("category.id IN (:...categoryIds)", { categoryIds: topCategories })
-            .andWhere("product.isActive = :isActive", { isActive: true })
-            .andWhere("product.id NOT IN (:...existingIds)", { 
-              existingIds: existingProductIds.size > 0 ? [...existingProductIds] : [0] 
-            })
-            .orderBy("product.rating", "DESC")
-            .take(Math.min(5, limit))
-            .getMany();
-            
-          // Thêm sản phẩm từ danh mục ưa thích
-          categoryProducts.forEach(product => {
-            productIds.add(product.id);
-            products.push(product);
-            
-            const matchingCategoryIds = topCategories
-              .filter(catId => product.categories.some(cat => cat.id === catId));
-            const matchingCount = matchingCategoryIds.length;
-            
-            const reason = "thuộc danh mục bạn quan tâm";
-            
-            productScores[product.id] = {
-              score: 0.3 * Math.max(1, matchingCount), // Điểm thấp hơn sản phẩm đã tương tác trực tiếp
-              reasons: [reason],
-              lastInteraction: new Date(now.getTime() - 30 * millisecondsPerDay), // Giả định tương tác cũ hơn
-              interactionTypes: new Set(["category"])
-            };
-          });
-        }
-      } catch (error) {
-        console.error('Lỗi khi tìm sản phẩm từ danh mục:', error);
-      }
-      
-      // Xử lý query tìm kiếm nếu có
-      try {
-        if (query && query.trim().length > 0) {
-          const keywords = this.extractSearchKeywords(query.trim());
-          const existingProductIds = new Set(products.map(p => p.id));
-          
-          if (keywords.length > 0) {
-            let queryBuilder = this.productRepository.createQueryBuilder("product")
-              .where("product.isActive = :isActive", { isActive: true })
-              .andWhere("product.id NOT IN (:...existingIds)", { 
-                existingIds: existingProductIds.size > 0 ? [...existingProductIds] : [0] 
-              });
-              
-            // Tạo điều kiện tìm kiếm
-            const keywordConditions = keywords.map((kw, index) => 
-              `(LOWER(product.name) LIKE :kw${index} OR LOWER(product.description) LIKE :kw${index} OR LOWER(product.tags) LIKE :kw${index})`
-            ).join(" OR ");
-            
-            const keywordParams = {};
-            keywords.forEach((kw, index) => {
-              keywordParams[`kw${index}`] = `%${kw.toLowerCase()}%`;
-            });
-            
-            queryBuilder = queryBuilder.andWhere(`(${keywordConditions})`, keywordParams);
-            
-            // Lấy sản phẩm phù hợp với từ khóa
-            const queryProducts = await queryBuilder
-              .orderBy("product.rating", "DESC")
-              .take(limit)
-              .getMany();
-              
-            // Thêm sản phẩm từ query
-            queryProducts.forEach(product => {
-              productIds.add(product.id);
-              products.push(product);
-              
-              // Đánh giá mức độ phù hợp
-              let matchCount = 0;
-              keywords.forEach(kw => {
-                const kwLower = kw.toLowerCase();
-                if (product.name.toLowerCase().includes(kwLower) ||
-                    (product.description && product.description.toLowerCase().includes(kwLower)) ||
-                    (product.tags && product.tags.toLowerCase().includes(kwLower))) {
-                  matchCount++;
-                }
-              });
-              
-              productScores[product.id] = {
-                score: 0.3 + matchCount * 0.2, // Điểm dựa trên độ phù hợp
-                reasons: ["phù hợp với yêu cầu của bạn"],
-                lastInteraction: new Date(),  // Đặt thời gian tương tác mới nhất
-                interactionTypes: new Set(["search"])
-              };
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Lỗi khi xử lý query tìm kiếm:', error);
-      }
-      
-      // Tính điểm đa dạng cho các sản phẩm
-      products.forEach(product => {
-        if (!productScores[product.id]) return;
-        
-        // Tăng điểm nếu có nhiều loại tương tác khác nhau
-        const diversityBonus = productScores[product.id].interactionTypes.size * 0.2;
-        productScores[product.id].score += diversityBonus;
-      });
-      
-      // Chuyển đổi thành mảng sản phẩm có điểm và sắp xếp
-      const scoredProducts = products.map(product => {
-        const scoreInfo = productScores[product.id];
-        if (!scoreInfo) return null;
-        
-        // Tạo lý do đề xuất
-        const reasonComponents = [];
-        
-        if (scoreInfo.reasons.length > 0) {
-          reasonComponents.push(...scoreInfo.reasons);
-        }
-        
-        // Thêm thông tin danh mục nếu phù hợp
-        if (product.categories && product.categories.length > 0) {
-          const matchingCategoryIds = topCategories
-            .filter(catId => product.categories.some(cat => cat.id === catId));
-          const matchingCount = matchingCategoryIds.length;
-          
-          if (matchingCount > 0 && !reasonComponents.includes("thuộc danh mục bạn quan tâm")) {
-            reasonComponents.push("thuộc danh mục bạn quan tâm");
-          }
-        }
-        
-        // Tạo chuỗi lý do đầy đủ
-        let reasoning = "";
-        if (reasonComponents.length > 0) {
-          reasoning = `Được đề xuất vì đây là ${reasonComponents.join(" và ")}`;
-        } else {
-          reasoning = "Sản phẩm phổ biến phù hợp với bạn";
-        }
-        
-        return {
-          ...product,
-          score: scoreInfo.score,
-          reasoning,
-          lastInteraction: scoreInfo.lastInteraction
-        };
-      }).filter(Boolean).filter(p => p.score > 0);
-      
-      // Sắp xếp theo điểm và thời gian tương tác
-      scoredProducts.sort((a, b) => {
-        // So sánh điểm, ưu tiên điểm cao hơn
-        if (Math.abs(b.score - a.score) > 0.2) {
-          return b.score - a.score;
-        }
-        
-        // Nếu điểm gần bằng nhau, ưu tiên sản phẩm có tương tác gần đây hơn
-        return b.lastInteraction.getTime() - a.lastInteraction.getTime();
-      });
-
-      // Thu thập tất cả lý do đề xuất
-      const allReasons = new Set<string>();
-      scoredProducts.slice(0, limit).forEach(product => {
-        if (productScores[product.id]?.reasons) {
-          productScores[product.id].reasons.forEach(reason => {
-            allReasons.add(reason);
-          });
-        }
-      });
-
-      // Định dạng kết quả trả về
-      const formattedProducts = scoredProducts.slice(0, limit).map(product => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
-        description: product.description,
-        stock: product.stock,
-        reasoning: product.reasoning,
-        score: product.score
-      }));
-      
-      // Nếu không đủ sản phẩm, bổ sung thêm sản phẩm phổ biến
-      if (formattedProducts.length < limit) {
-        const additionalProducts = await this.getAdditionalProducts(
-          formattedProducts.map(p => p.id),
-          limit - formattedProducts.length
-        );
-        
-        formattedProducts.push(...additionalProducts);
-      }
-      
-      // Log kết quả để theo dõi
-      console.log(`[RECOMMENDATION] User ${userId} - Số sản phẩm đề xuất: ${formattedProducts.length}`);
-      formattedProducts.forEach((p, i) => {
-        const originalProduct = scoredProducts.find(sp => sp.id === p.id);
-        if (originalProduct) {
-          console.log(`  ${i+1}. ${p.name} - Điểm: ${originalProduct.score.toFixed(2)} - Lý do: ${p.reasoning}`);
-        } else {
-          console.log(`  ${i+1}. ${p.name} - Điểm: N/A (sản phẩm bổ sung) - Lý do: Sản phẩm phổ biến`);
-        }
-      });
-      
       return {
         success: true,
-        products: formattedProducts,
-        reasonings: Array.from(allReasons),
-        isNewUser: false
+        products: responseProducts,
+        reasonings: [...new Set(reasonings)],
+        isNewUser
       };
     } catch (error) {
-      console.error("Lỗi khi lấy đề xuất cá nhân hóa:", error);
-      return this.getFallbackRecommendations(limit);
+      console.error("Lỗi khi tạo đề xuất cá nhân hóa:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Lỗi không xác định"
+      };
     }
   }
-  
+
   /**
    * Phương thức dự phòng để lấy sản phẩm phổ biến khi không có đề xuất cá nhân hóa
    */
@@ -986,111 +771,6 @@ export class UserBehaviorService {
         success: false,
         error: "Không thể lấy đề xuất sản phẩm"
       };
-    }
-  }
-  
-  /**
-   * Lấy thêm sản phẩm phổ biến khi không đủ số lượng từ đề xuất cá nhân hóa
-   */
-  private async getAdditionalProducts(existingIds: number[], limit: number): Promise<any[]> {
-    try {
-      if (limit <= 0) return [];
-      
-      console.log(`[RECOMMENDATION] Lấy thêm ${limit} sản phẩm phổ biến`);
-      
-      const additionalProducts = await this.productRepository
-        .createQueryBuilder("product")
-        .where("product.isActive = :isActive", { isActive: true })
-        .andWhere("product.id NOT IN (:...existingIds)", { 
-          existingIds: existingIds.length > 0 ? existingIds : [0] 
-        })
-        .orderBy("product.rating", "DESC")
-        .take(limit)
-        .getMany();
-        
-      return additionalProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
-        description: product.description,
-        stock: product.stock,
-        reasoning: "Sản phẩm phổ biến bạn có thể quan tâm"
-      }));
-    } catch (error) {
-      console.error("Lỗi khi lấy thêm sản phẩm:", error);
-      return [];
-    }
-  }
-
-  // Lưu sở thích người dùng
-  async saveUserPreference(
-    userId: number, 
-    preferenceType: PreferenceType, 
-    value: string, 
-    categoryId?: number
-  ) {
-    try {
-      // Kiểm tra nếu sở thích đã tồn tại
-      const existingPref = await this.preferenceRepository.findOne({
-        where: {
-          userId,
-          preferenceType,
-          value
-        }
-      });
-      
-      if (existingPref) {
-        return { success: true, preference: existingPref };
-      }
-      
-      // Tạo mới sở thích
-      const newPreference = this.preferenceRepository.create({
-        userId,
-        preferenceType,
-        value,
-        categoryId: categoryId || null
-      });
-      
-      const preference = await this.preferenceRepository.save(newPreference);
-      return { success: true, preference };
-    } catch (error) {
-      console.error("Error saving user preference:", error);
-      return { success: false, error: "Failed to save preference" };
-    }
-  }
-
-  // Xóa sở thích người dùng
-  async removeUserPreference(preferenceId: number, userId: number) {
-    try {
-      const preference = await this.preferenceRepository.findOne({
-        where: { id: preferenceId, userId }
-      });
-      
-      if (!preference) {
-        return { success: false, message: "Preference not found" };
-      }
-      
-      await this.preferenceRepository.remove(preference);
-      return { success: true };
-    } catch (error) {
-      console.error("Error removing user preference:", error);
-      return { success: false, error: "Failed to remove preference" };
-    }
-  }
-
-  // Lấy sở thích người dùng
-  async getUserPreferences(userId: number) {
-    try {
-      const preferences = await this.preferenceRepository.find({
-        where: { userId },
-        relations: ["category"]
-      });
-      
-      return { success: true, preferences };
-    } catch (error) {
-      console.error("Error fetching user preferences:", error);
-      return { success: false, error: "Failed to fetch preferences" };
     }
   }
 
@@ -1165,29 +845,6 @@ export class UserBehaviorService {
     }
   }
 
-  /**
-   * Cập nhật số lượt thích cho sản phẩm
-   */
-  private async updateProductLikes(productId: number): Promise<void> {
-    try {
-      const productRepository = AppDataSource.getRepository(Product);
-      
-      // Đếm số lượt LIKE cho sản phẩm
-      const likeCount = await this.userBehaviorRepository.count({
-        where: {
-          productId,
-          behaviorType: BehaviorType.LIKE
-        }
-      });
-      
-      // Cập nhật trường likeCount trong bảng products
-      await productRepository.update(productId, { likeCount });
-      
-    } catch (error) {
-      console.error(`Lỗi khi cập nhật lượt thích sản phẩm: ${error}`);
-    }
-  }
-
   // Lưu hành vi click vào danh mục
   async trackCategoryClick(userId: number, categoryId: number) {
     try {
@@ -1241,4 +898,27 @@ export class UserBehaviorService {
       return { success: false, error: "Failed to track category click" };
     }
   }
-} 
+
+  /**
+   * Cập nhật số lượt thích cho sản phẩm
+   */
+  private async updateProductLikes(productId: number): Promise<void> {
+    try {
+      const productRepository = AppDataSource.getRepository(Product);
+      
+      // Đếm số lượt LIKE cho sản phẩm
+      const likeCount = await this.userBehaviorRepository.count({
+        where: {
+          productId,
+          behaviorType: BehaviorType.LIKE
+        }
+      });
+      
+      // Cập nhật trường likeCount trong bảng products
+      await productRepository.update(productId, { likeCount });
+      
+    } catch (error) {
+      console.error(`Lỗi khi cập nhật lượt thích sản phẩm: ${error}`);
+    }
+  }
+}

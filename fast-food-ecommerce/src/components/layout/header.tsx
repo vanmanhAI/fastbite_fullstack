@@ -27,6 +27,8 @@ import { useMobile } from "@/hooks/use-mobile"
 import { Search, ShoppingCart, User, Menu, X, LogIn, Home, Pizza, Info, Phone, LogOut } from "lucide-react"
 import { useCart } from "@/contexts/CartContext"
 import { useAuth } from "@/contexts/AuthContext"
+import { trackSearchQuery } from "@/services/recommendationService"
+import { useRouter } from "next/navigation"
 
 // Định nghĩa danh mục thực đơn
 const categories = [
@@ -66,6 +68,8 @@ export default function Header() {
   const isMobile = useMobile()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter()
   
   const { user, isAuthenticated, logout } = useAuth()
   
@@ -79,6 +83,31 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Xử lý tìm kiếm - chỉ thực hiện khi người dùng nhấn Enter
+  const handleSearch = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    
+    if (!searchQuery.trim()) return
+    
+    // Theo dõi hành vi tìm kiếm
+    await trackSearchQuery(searchQuery)
+    
+    // Chuyển đến trang tìm kiếm
+    router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
+    
+    // Đóng ô tìm kiếm
+    setIsSearchOpen(false)
+    setSearchQuery("")
+  }
+
+  // Xử lý phím Enter - đảm bảo chỉ tìm kiếm khi nhấn Enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault() // Ngăn form submit mặc định
+      handleSearch()
+    }
+  }
 
   return (
     <header
@@ -158,11 +187,16 @@ export default function Header() {
                       placeholder="Tìm kiếm món ăn..."
                       className="pr-8"
                       autoFocus
-                      onBlur={() => setIsSearchOpen(false)}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
                     />
                     <X
                       className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 cursor-pointer text-gray-400"
-                      onClick={() => setIsSearchOpen(false)}
+                      onClick={() => {
+                        setIsSearchOpen(false)
+                        setSearchQuery("")
+                      }}
                     />
                   </div>
                 ) : (

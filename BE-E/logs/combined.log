@@ -64,3 +64,212 @@
 2025-05-15 00:05:12 [INFO]:   1. Pepsi cvm - Điểm: 292.15 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
 2025-05-15 00:05:12 [INFO]:   2. coca cola - Điểm: 42.15 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
 2025-05-15 00:05:12 [INFO]:   3. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:13:11 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 0 sản phẩm 
+2025-05-15 08:13:33 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 0 sản phẩm 
+2025-05-15 08:14:08 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 2 sản phẩm 
+2025-05-15 08:14:08 [INFO]:   1. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:14:08 [INFO]:   2. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:14:47 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 4 sản phẩm 
+2025-05-15 08:14:47 [INFO]:   1. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:14:47 [INFO]:   2. pizza hải sản - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:14:47 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:14:47 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:15:31 [INFO]: [RECOMMENDATION] User 17 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-15 08:22:46 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 1 sản phẩm 
+2025-05-15 08:22:46 [INFO]:   1. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:24:11 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 08:24:11 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:24:11 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:24:11 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:24:11 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:24:11 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:37:37 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 08:37:37 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:37:37 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:37:37 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:37:37 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:37:37 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:38:54 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 08:38:54 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:38:54 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:38:54 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:38:54 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:38:54 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:45:32 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 08:45:32 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:45:32 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:45:32 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:45:32 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:45:32 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:55:18 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 08:55:18 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:55:18 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:55:18 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:55:18 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 08:55:18 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:04:39 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 09:04:39 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:04:39 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:04:39 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:04:39 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:04:39 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:05:03 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 09:05:03 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:05:03 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:05:03 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:05:03 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:05:03 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:10:40 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 09:10:40 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:10:40 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:10:40 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:10:40 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:10:40 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:59:27 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-15 09:59:27 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:59:27 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:59:27 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:59:27 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-15 09:59:27 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:29:41 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 5 sản phẩm 
+2025-05-21 20:29:41 [INFO]:   1. pizza hà nội - Điểm: 3.38 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:29:41 [INFO]:   2. coca cola - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:29:41 [INFO]:   3. pizza rau củ - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:29:41 [INFO]:   4. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:29:41 [INFO]:   5. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:11 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 4 sản phẩm 
+2025-05-21 20:30:11 [INFO]:   1. coca cola - Điểm: 138.30 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:11 [INFO]:   2. Pepsi cvm - Điểm: 135.70 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:11 [INFO]:   3. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:11 [INFO]:   4. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:26 [INFO]: [ENHANCED RECOMMENDATION] User 17 - Đề xuất 4 sản phẩm 
+2025-05-21 20:30:26 [INFO]:   1. coca cola - Điểm: 138.30 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:26 [INFO]:   2. Pepsi cvm - Điểm: 135.70 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:26 [INFO]:   3. sprite - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:30:26 [INFO]:   4. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:32:35 [INFO]: [RECOMMENDATION] User 19 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 20:33:04 [INFO]: [ENHANCED RECOMMENDATION] User 19 - Đề xuất 2 sản phẩm 
+2025-05-21 20:33:04 [INFO]:   1. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:33:04 [INFO]:   2. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:33:48 [INFO]: [ENHANCED RECOMMENDATION] User 19 - Đề xuất 2 sản phẩm 
+2025-05-21 20:33:48 [INFO]:   1. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:33:48 [INFO]:   2. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:34:26 [INFO]: [ENHANCED RECOMMENDATION] User 19 - Đề xuất 2 sản phẩm 
+2025-05-21 20:34:26 [INFO]:   1. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 20:34:26 [INFO]:   2. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 21:55:37 [INFO]: [RECOMMENDATION] User 20 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 22:15:40 [INFO]: [ENHANCED RECOMMENDATION] User 20 - Đề xuất 1 sản phẩm 
+2025-05-21 22:15:40 [INFO]:   1. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:16:43 [INFO]: [ENHANCED RECOMMENDATION] User 20 - Đề xuất 3 sản phẩm 
+2025-05-21 22:16:43 [INFO]:   1. coca cola - Điểm: 2.30 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:16:43 [INFO]:   2. sprite - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:16:43 [INFO]:   3. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:05 [INFO]: [ENHANCED RECOMMENDATION] User 20 - Đề xuất 3 sản phẩm 
+2025-05-21 22:40:05 [INFO]:   1. coca cola - Điểm: 2.30 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:05 [INFO]:   2. sprite - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:05 [INFO]:   3. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:29 [INFO]: [ENHANCED RECOMMENDATION] User 20 - Đề xuất 4 sản phẩm 
+2025-05-21 22:40:29 [INFO]:   1. Pepsi cvm - Điểm: 98.72 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:29 [INFO]:   2. sprite - Điểm: 98.30 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:29 [INFO]:   3. coca cola - Điểm: 2.30 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:40:29 [INFO]:   4. kem chocolate - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:41:32 [INFO]: [RECOMMENDATION] User 21 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 22:42:00 [INFO]: [ENHANCED RECOMMENDATION] User 21 - Đề xuất 2 sản phẩm 
+2025-05-21 22:42:00 [INFO]:   1. Pepsi cvm - Điểm: 2.88 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:42:00 [INFO]:   2. sprite - Điểm: 2.30 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:44:19 [INFO]: [ENHANCED RECOMMENDATION] User 21 - Đề xuất 3 sản phẩm 
+2025-05-21 22:44:19 [INFO]:   1. Pepsi cvm - Điểm: 349.69 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 22:44:19 [INFO]:   2. coca cola - Điểm: 98.43 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 22:44:19 [INFO]:   3. sprite - Điểm: 53.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 22:45:13 [INFO]: [RECOMMENDATION] User 22 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 22:45:37 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 22:45:37 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:45:37 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:45:48 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 22:45:48 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:45:48 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:46:20 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 22:46:20 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 22:46:20 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:02:05 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 23:02:05 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:02:05 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:03:20 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 23:03:20 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:03:20 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:06:15 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 23:06:15 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:06:15 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:16:30 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 23:16:30 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:16:30 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:16:45 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 2 sản phẩm 
+2025-05-21 23:16:45 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:16:45 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:02 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 3 sản phẩm 
+2025-05-21 23:21:02 [INFO]:   1. Pepsi cvm - Điểm: 638.45 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:02 [INFO]:   2. sprite - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:02 [INFO]:   3. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:12 [INFO]: [ENHANCED RECOMMENDATION] User 22 - Đề xuất 3 sản phẩm 
+2025-05-21 23:21:12 [INFO]:   1. Pepsi cvm - Điểm: 638.44 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:12 [INFO]:   2. sprite - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:12 [INFO]:   3. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:21:56 [INFO]: [RECOMMENDATION] User 23 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 23:22:25 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 2 sản phẩm 
+2025-05-21 23:22:25 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:22:25 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:22:50 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 4 sản phẩm 
+2025-05-21 23:22:50 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:22:50 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:22:50 [INFO]:   3. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:22:50 [INFO]:   4. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:24 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 4 sản phẩm 
+2025-05-21 23:35:24 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:24 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:24 [INFO]:   3. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:24 [INFO]:   4. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:54 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 4 sản phẩm 
+2025-05-21 23:35:54 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:54 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:54 [INFO]:   3. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:35:54 [INFO]:   4. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:32 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 5 sản phẩm 
+2025-05-21 23:36:32 [INFO]:   1. Pepsi cvm - Điểm: 182.82 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:32 [INFO]:   2. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:32 [INFO]:   3. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:32 [INFO]:   4. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:32 [INFO]:   5. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:40 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 5 sản phẩm 
+2025-05-21 23:36:40 [INFO]:   1. Pepsi cvm - Điểm: 182.82 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:40 [INFO]:   2. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:40 [INFO]:   3. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:40 [INFO]:   4. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:36:40 [INFO]:   5. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:37:03 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 5 sản phẩm 
+2025-05-21 23:37:03 [INFO]:   1. Pepsi cvm - Điểm: 182.81 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:37:03 [INFO]:   2. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:37:03 [INFO]:   3. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:37:03 [INFO]:   4. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:37:03 [INFO]:   5. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:45:17 [INFO]: [ENHANCED RECOMMENDATION] User 23 - Đề xuất 5 sản phẩm 
+2025-05-21 23:45:17 [INFO]:   1. Pepsi cvm - Điểm: 182.71 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:45:17 [INFO]:   2. coca cola - Điểm: 13.53 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:45:17 [INFO]:   3. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:45:17 [INFO]:   4. gà rán giòn (3 miếng) - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:45:17 [INFO]:   5. khoai tây chiên - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:46:11 [INFO]: [RECOMMENDATION] User 24 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-21 23:46:34 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 2 sản phẩm 
+2025-05-21 23:46:34 [INFO]:   1. coca cola - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:46:34 [INFO]:   2. sprite - Điểm: 2.45 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:47:46 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 5 sản phẩm 
+2025-05-21 23:47:46 [INFO]:   1. Pepsi cvm - Điểm: 941.94 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:47:46 [INFO]:   2. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:47:46 [INFO]:   3. sprite - Điểm: 11.24 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:47:46 [INFO]:   4. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:47:46 [INFO]:   5. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:49:04 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 5 sản phẩm 
+2025-05-21 23:49:04 [INFO]:   1. Pepsi cvm - Điểm: 941.86 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:49:04 [INFO]:   2. coca cola - Điểm: 13.54 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:49:04 [INFO]:   3. sprite - Điểm: 11.24 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
+2025-05-21 23:49:04 [INFO]:   4. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-21 23:49:04 [INFO]:   5. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 

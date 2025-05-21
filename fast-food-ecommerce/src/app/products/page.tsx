@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import ProductCard from "@/components/product-card"
 import { Separator } from "@/components/ui/separator"
@@ -18,20 +18,24 @@ import { getAllCategories } from '@/services/categoryService'
 import LoadingSpinner from '@/components/loading-spinner'
 import { Input } from "@/components/ui/input"
 import ProductHeroSlider from "@/components/products/product-hero-slider"
-import CategorySlider from "@/components/products/category-slider"
+import recommendationService from '@/services/recommendationService'
+import { useAuth } from '@/contexts/AuthContext'
+import { trackSearchQuery } from '@/services/recommendationService'
 
 export default function ProductsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const categorySlug = searchParams.get('category')
   const searchQuery = searchParams.get('q')
+  const { isAuthenticated } = useAuth()
   
   const [products, setProducts] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [search, setSearch] = useState(searchQuery || '')
+  const [inputSearch, setInputSearch] = useState(searchQuery || '')
+  const [activeSearch, setActiveSearch] = useState(searchQuery || '')
   const [filter, setFilter] = useState({
     category: categorySlug || '',
     vegetarian: false,
@@ -40,7 +44,6 @@ export default function ProductsPage() {
   })
   
   useEffect(() => {
-    // Lấy danh sách danh mục
     const fetchCategories = async () => {
       try {
         const categoriesData = await getAllCategories()
@@ -54,7 +57,6 @@ export default function ProductsPage() {
   }, [])
 
   useEffect(() => {
-    // Lấy danh sách sản phẩm với bộ lọc
     const fetchProducts = async () => {
       try {
         setLoading(true)
@@ -62,7 +64,7 @@ export default function ProductsPage() {
           currentPage,
           12,
           filter.category,
-          search,
+          activeSearch,
           undefined,
           filter.vegetarian
         )
@@ -77,7 +79,7 @@ export default function ProductsPage() {
     }
 
     fetchProducts()
-  }, [currentPage, filter, search])
+  }, [currentPage, filter, activeSearch])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -86,29 +88,53 @@ export default function ProductsPage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setActiveSearch(inputSearch)
     setCurrentPage(1)
+    
+    if (inputSearch.trim()) {
+      trackSearchQuery(inputSearch)
+    }
   }
 
-  const handleFilterChange = (name: string, value: any) => {
-    setFilter(prev => ({ ...prev, [name]: value }))
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setInputSearch(value)
+  }
+
+  const handleFilterChange = (filterName: string, value: any) => {
+    setFilter(prev => ({ ...prev, [filterName]: value }))
     setCurrentPage(1)
+    
+    if (activeSearch.trim()) {
+      trackSearchQuery(activeSearch)
+    }
+    
+    if (filterName === 'category' && value !== '') {
+      try {
+        const selectedCategory = categories.find(cat => cat.slug === value)
+        if (selectedCategory && isAuthenticated) {
+          recommendationService.trackCategoryClick(selectedCategory.id, selectedCategory.name)
+          console.log(`Đã gọi trackCategoryClick cho danh mục ID: ${selectedCategory.id}, tên: ${selectedCategory.name}`)
+        }
+      } catch (error) {
+        console.error('Lỗi khi theo dõi click danh mục:', error)
+      }
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit(e)
+    }
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Slider hiển thị sản phẩm nổi bật */}
       <ProductHeroSlider className="mb-10" />
-      
-      {/* Slider danh mục */}
-      <div className="px-6 mb-10">
-        <h2 className="text-2xl font-bold mb-4">Khám phá danh mục</h2>
-        <CategorySlider />
-      </div>
 
       <h1 className="text-3xl font-bold mb-8 text-center">Thực đơn của chúng tôi</h1>
       
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar Filters */}
         <div className="w-full md:w-64 space-y-6">
           <div className="p-4 bg-white rounded-lg shadow">
             <h3 className="font-medium text-lg mb-4">Tìm kiếm</h3>
@@ -116,8 +142,9 @@ export default function ProductsPage() {
               <Input
                 type="text"
                 placeholder="Tìm món ăn..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={inputSearch}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
                 className="flex-grow"
               />
               <Button type="submit" size="sm" className="ml-2">
@@ -174,7 +201,6 @@ export default function ProductsPage() {
           </div>
         </div>
         
-        {/* Product Grid */}
         <div className="flex-1">
           {loading ? (
             <div className="flex justify-center my-16">
@@ -194,7 +220,6 @@ export default function ProductsPage() {
                 </div>
               )}
               
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center mt-8 space-x-2">
                   <Button

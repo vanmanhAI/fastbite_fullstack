@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { getProductById, Product } from '@/services/productService'
+import { getProductById, Product, likeProduct, checkProductLike } from '@/services/productService'
 import { getReviewsByProduct, Review } from '@/services/reviewService'
 import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,9 @@ import {
 import LoadingSpinner from '@/components/loading-spinner'
 import ProductReviews from '@/components/product-reviews'
 import { useToast } from '@/components/ui/use-toast'
+import socketService from '@/services/socketService'
+import { useAuth } from '@/contexts/AuthContext'
+import recommendationService from '@/services/recommendationService'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -34,8 +37,11 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [reviews, setReviews] = useState<Review[]>([])
   const [avgRating, setAvgRating] = useState(0)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
   const { addToCart } = useCart()
   const { toast } = useToast()
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -47,13 +53,13 @@ export default function ProductDetail() {
         // Lấy đánh giá
         const reviewsData = await getReviewsByProduct(Number(id))
         setReviews(reviewsData.reviews)
+        setAvgRating(reviewsData.avgRating)
         
-        // Tính điểm trung bình
-        if (reviewsData.reviews.length > 0) {
-          const totalRating = reviewsData.reviews.reduce(
-            (sum, review) => sum + review.rating, 0
-          )
-          setAvgRating(totalRating / reviewsData.reviews.length)
+        // Kiểm tra trạng thái like
+        if (isAuthenticated) {
+          const likeStatus = await checkProductLike(Number(id))
+          setIsLiked(likeStatus.isLiked)
+          setLikeCount(likeStatus.likeCount)
         }
       } catch (error) {
         console.error("Lỗi khi tải thông tin sản phẩm:", error)
@@ -65,7 +71,105 @@ export default function ProductDetail() {
     if (id) {
       fetchProductDetails()
     }
-  }, [id])
+  }, [id, isAuthenticated])
+
+  // Theo dõi lượt xem sản phẩm khi người dùng truy cập chi tiết
+  useEffect(() => {
+    if (product && product.id) {
+      try {
+        console.log(`Theo dõi lượt xem sản phẩm ID: ${product.id}, tên: ${product.name}`)
+        recommendationService.trackProductView(product.id)
+        console.log(`Đã gọi trackProductView cho sản phẩm ID: ${product.id}`)
+      } catch (error) {
+        console.error("Lỗi khi theo dõi lượt xem sản phẩm:", error)
+      }
+    }
+  }, [product])
+
+  // Đăng ký lắng nghe sự kiện cập nhật rating và like
+  useEffect(() => {
+    // Chỉ chạy ở client side
+    if (typeof window === 'undefined') return;
+    if (!id) return;
+    
+    try {
+      const numericId = Number(id);
+      if (isNaN(numericId)) return;
+      
+      const socket = socketService;
+      
+      // Đăng ký tham gia room sản phẩm
+      socket.joinProductRoom(numericId);
+      
+      // Lắng nghe sự kiện cập nhật rating
+      const unsubscribeRating = socket.onProductRatingUpdate((data) => {
+        if (!data || typeof data.rating !== 'number') return;
+        
+        console.log("Nhận cập nhật rating sản phẩm:", data);
+        setAvgRating(data.rating);
+      });
+      
+      // Lắng nghe sự kiện cập nhật like
+      const unsubscribeLike = socket.onProductLikeUpdate((data) => {
+        console.log("Nhận cập nhật like sản phẩm:", data);
+        setLikeCount(data.likeCount);
+      });
+      
+      return () => {
+        try {
+          socket.leaveProductRoom(numericId);
+          unsubscribeRating();
+          unsubscribeLike();
+        } catch (error) {
+          console.error("Lỗi khi dọn dẹp socket:", error);
+        }
+      };
+    } catch (error) {
+      console.error("Lỗi khi thiết lập socket:", error);
+      return () => {};
+    }
+  }, [id]);
+
+  const handleLikeProduct = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Bạn cần đăng nhập",
+        description: "Vui lòng đăng nhập để thích sản phẩm này",
+        variant: "destructive",
+        duration: 3000,
+      })
+      return
+    }
+    
+    try {
+      const result = await likeProduct(Number(id))
+      setIsLiked(result.isLiked)
+      setLikeCount(result.likeCount)
+      
+      // Theo dõi hành vi thích sản phẩm
+      if (result.isLiked) {
+        try {
+          recommendationService.trackLikeProduct(Number(id))
+          console.log(`Đã gọi trackLikeProduct cho sản phẩm ID: ${id}`)
+        } catch (error) {
+          console.error("Lỗi khi theo dõi hành vi thích sản phẩm:", error)
+        }
+      }
+      
+      toast({
+        title: result.isLiked ? "Đã thích sản phẩm" : "Đã bỏ thích sản phẩm",
+        duration: 2000,
+      })
+    } catch (error) {
+      console.error("Lỗi khi thích sản phẩm:", error)
+      toast({
+        title: "Có lỗi xảy ra",
+        description: "Không thể thích sản phẩm này. Vui lòng thử lại sau.",
+        variant: "destructive",
+        duration: 3000,
+      })
+    }
+  }
 
   const handleIncreaseQuantity = () => setQuantity(prev => prev + 1)
   
@@ -78,6 +182,15 @@ export default function ProductDetail() {
   const handleAddToCart = () => {
     if (product) {
       addToCart(product, quantity)
+      
+      // Theo dõi hành vi thêm vào giỏ hàng
+      try {
+        recommendationService.trackAddToCart(product.id)
+        console.log(`Đã gọi trackAddToCart cho sản phẩm ID: ${product.id}`)
+      } catch (error) {
+        console.error("Lỗi khi theo dõi hành vi thêm vào giỏ hàng:", error)
+      }
+      
       toast({
         title: "Đã thêm vào giỏ hàng",
         description: `${quantity} x ${product.name} đã được thêm vào giỏ hàng`,
@@ -142,7 +255,7 @@ export default function ProductDetail() {
                 <Star
                   key={star}
                   className={`h-4 w-4 ${
-                    star <= Math.round(avgRating)
+                    star <= Math.round(avgRating || 0)
                       ? 'text-yellow-400 fill-yellow-400'
                       : 'text-gray-300'
                   }`}
@@ -206,13 +319,20 @@ export default function ProductDetail() {
             <Button
               className="flex-1"
               onClick={handleAddToCart}
+              disabled={product.stock <= 0}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
               Thêm vào giỏ
             </Button>
             
-            <Button variant="outline" size="icon">
-              <Heart className="h-4 w-4" />
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={handleLikeProduct}
+              className={isLiked ? "bg-red-50" : ""}
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? "text-red-500 fill-red-500" : ""}`} />
+              <span className="sr-only">{isLiked ? "Bỏ thích" : "Thích"}</span>
             </Button>
           </div>
           
@@ -221,6 +341,8 @@ export default function ProductDetail() {
               <div className="flex justify-between">
                 <div>
                   <p className="text-sm font-medium">Tình trạng:</p>
+                  <p className="text-sm font-medium">Số lượng còn lại:</p>
+                  <p className="text-sm font-medium">Lượt thích:</p>
                   <p className="text-sm font-medium">Danh mục:</p>
                   {product.tags && <p className="text-sm font-medium">Tags:</p>}
                 </div>
@@ -228,6 +350,8 @@ export default function ProductDetail() {
                   <p className="text-sm">
                     {product.stock > 0 ? 'Còn hàng' : 'Hết hàng'}
                   </p>
+                  <p className="text-sm">{product.stock}</p>
+                  <p className="text-sm">{likeCount}</p>
                   <p className="text-sm">
                     {product.categories?.map(c => c.name).join(', ')}
                   </p>
@@ -262,7 +386,7 @@ export default function ProductDetail() {
           <TabsContent value="reviews">
             <ProductReviews 
               reviews={reviews} 
-              productId={product.id} 
+              productId={Number(id)} 
               avgRating={avgRating}
             />
           </TabsContent>

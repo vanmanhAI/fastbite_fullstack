@@ -3,7 +3,6 @@ import { AppDataSource } from "../config/database";
 import { ChatLog } from "../models/ChatLog";
 import { processMessageWithRAG, ChatMessage } from "../services/aiService";
 import { Product } from "../models/Product";
-import { UserPreference } from "../models/UserPreference";
 import { UserBehavior, BehaviorType } from "../models/UserBehavior";
 import { UserBehaviorService } from "../services/UserBehaviorService";
 import { RecommendationEngineService } from "../services/RecommendationEngineService";
@@ -11,14 +10,15 @@ import { getRecommendedProducts } from "../services/intentClassifierService";
 import { Category } from "../models/Category";
 import { classifyEnhancedUserIntent, UserIntent } from '../services/enhancedIntentClassifier';
 import { In } from "typeorm";
+import { QueryUnderstandingService } from "../services/QueryUnderstandingService";
 
 const chatLogRepository = AppDataSource.getRepository(ChatLog);
 const productRepository = AppDataSource.getRepository(Product);
-const userPreferenceRepository = AppDataSource.getRepository(UserPreference);
 const userBehaviorRepository = AppDataSource.getRepository(UserBehavior);
 const categoryRepository = AppDataSource.getRepository(Category);
 const userBehaviorService = new UserBehaviorService();
 const recommendationEngine = new RecommendationEngineService();
+const queryUnderstandingService = new QueryUnderstandingService();
 
 // Xử lý câu hỏi về sở thích của người dùng
 async function handleUserPreferenceQuery(userId: number, message: string): Promise<any> {
@@ -232,6 +232,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     
     console.log(`[DEBUG] Nhận tin nhắn từ frontend - message: ${message}`);
     console.log(`[DEBUG] userId: ${userId || 'Không có'}`);
+    console.log(`[DEBUG] sessionId: ${sessionId}`);
     console.log(`[DEBUG] intentData:`, intentData);
     console.log(`[DEBUG] chatHistory:`, chatHistory ? `${chatHistory.length} tin nhắn` : 'Không có');
     
@@ -487,53 +488,53 @@ export const analyzeUserIntent = async (req: Request | string, res?: Response) =
       // Sử dụng phương pháp phân loại cũ nếu có lỗi
       // Phân tích ý định dựa trên từ khóa và cụm từ
       // Ưu tiên kiểm tra cụm từ trước, sau đó mới đến từ đơn
-      const lowerMsg = message.toLowerCase();
+    const lowerMsg = message.toLowerCase();
       const intent: UserIntent = {
-        intent: 'general',
-        confidence: 0.5,
-        entities: {
-          keywords: extractKeywords(lowerMsg),
-          context: {},
-          category: await detectCategory(lowerMsg)
-        }
-      };
-      
-      if (
-        // Kiểm tra các cụm từ về đề xuất/gợi ý
-        containsPhrase(lowerMsg, ['muốn ăn', 'thích ăn', 'gợi ý món', 'đề xuất món',
-                                'món ngon', 'nên ăn gì', 'ăn gì ngon', 'món gì ngon',
-                                'có món gì', 'món tôi thích', 'món phù hợp']) ||
-        // Kiểm tra các từ đơn về đề xuất/gợi ý (sau khi đã không khớp cụm từ)
-        containsAny(lowerMsg, ['đề xuất', 'gợi ý', 'recommend', 'món gì', 'có món',
-                             'ăn gì', 'món nào', 'ngon không', 'có gì ngon'])
-      ) {
-        intent.intent = 'recommendation';
-        intent.confidence = 0.85;
-        console.log(`[DEBUG] Đã xác định intent là recommendation với confidence ${intent.confidence}`);
-      } else if (containsAny(lowerMsg, ['tìm', 'kiếm', 'search', 'lookup', 'món', 'đồ ăn'])) {
-        intent.intent = 'product_search';
-        intent.confidence = 0.75;
-        console.log(`[DEBUG] Đã xác định intent là product_search với confidence ${intent.confidence}`);
-      } else if (intent.entities.category) {
-        intent.intent = 'category_search';
-        intent.confidence = 0.7;
-        console.log(`[DEBUG] Đã xác định intent là category_search với confidence ${intent.confidence}`);
-      } else if (containsAny(lowerMsg, ['đơn hàng', 'trạng thái', 'order', 'status'])) {
-        intent.intent = 'order_status';
-        intent.confidence = 0.8;
-        console.log(`[DEBUG] Đã xác định intent là order_status với confidence ${intent.confidence}`);
-      } else {
-        console.log(`[DEBUG] Intent không rõ ràng, sử dụng general`);
+      intent: 'general',
+      confidence: 0.5,
+      entities: {
+        keywords: extractKeywords(lowerMsg),
+        context: {},
+        category: await detectCategory(lowerMsg)
       }
-      
-      if (res) {
-        return res.status(200).json({
-          success: true,
-          ...intent
-        });
-      }
-      
-      return intent;
+    };
+    
+    if (
+      // Kiểm tra các cụm từ về đề xuất/gợi ý
+      containsPhrase(lowerMsg, ['muốn ăn', 'thích ăn', 'gợi ý món', 'đề xuất món',
+                              'món ngon', 'nên ăn gì', 'ăn gì ngon', 'món gì ngon',
+                              'có món gì', 'món tôi thích', 'món phù hợp']) ||
+      // Kiểm tra các từ đơn về đề xuất/gợi ý (sau khi đã không khớp cụm từ)
+      containsAny(lowerMsg, ['đề xuất', 'gợi ý', 'recommend', 'món gì', 'có món',
+                           'ăn gì', 'món nào', 'ngon không', 'có gì ngon'])
+    ) {
+      intent.intent = 'recommendation';
+      intent.confidence = 0.85;
+      console.log(`[DEBUG] Đã xác định intent là recommendation với confidence ${intent.confidence}`);
+    } else if (containsAny(lowerMsg, ['tìm', 'kiếm', 'search', 'lookup', 'món', 'đồ ăn'])) {
+      intent.intent = 'product_search';
+      intent.confidence = 0.75;
+      console.log(`[DEBUG] Đã xác định intent là product_search với confidence ${intent.confidence}`);
+    } else if (intent.entities.category) {
+      intent.intent = 'category_search';
+      intent.confidence = 0.7;
+      console.log(`[DEBUG] Đã xác định intent là category_search với confidence ${intent.confidence}`);
+    } else if (containsAny(lowerMsg, ['đơn hàng', 'trạng thái', 'order', 'status'])) {
+      intent.intent = 'order_status';
+      intent.confidence = 0.8;
+      console.log(`[DEBUG] Đã xác định intent là order_status với confidence ${intent.confidence}`);
+    } else {
+      console.log(`[DEBUG] Intent không rõ ràng, sử dụng general`);
+    }
+    
+    if (res) {
+      return res.status(200).json({
+        success: true,
+        ...intent
+      });
+    }
+    
+    return intent;
     }
   } catch (error) {
     console.error('Lỗi khi phân tích ý định:', error);
@@ -601,6 +602,97 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
   try {
     let recommendations = [];
     const limit = 5;
+    
+    // Sử dụng query từ intentData nếu có
+    const query = intentData?.query || intentData?.keywords?.join(' ') || '';
+    
+    // Phân tích yêu cầu người dùng bằng service mới
+    const queryAnalysis = await queryUnderstandingService.analyzeQuery(query);
+    console.log(`[RECOMMENDATION] Kết quả phân tích query: "${query}"`, queryAnalysis);
+    
+    // Nếu phân tích cho thấy đây là yêu cầu trực tiếp về một sản phẩm cụ thể
+    if (queryAnalysis.exactProductMatch || queryAnalysis.isDirectProductRequest) {
+      // Tìm sản phẩm dựa trên kết quả phân tích
+      const directProducts = await queryUnderstandingService.findProductsFromAnalysis(queryAnalysis, limit);
+      
+      if (directProducts.length > 0) {
+        console.log(`[RECOMMENDATION] Tìm thấy ${directProducts.length} sản phẩm trực tiếp từ yêu cầu`);
+        
+        return {
+          products: directProducts.map(product => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
+            description: product.description,
+            stock: product.stock,
+            confidence: queryAnalysis.confidence,
+            reasoning: queryAnalysis.exactProductMatch 
+              ? `Đây chính là món ${product.name} mà bạn yêu cầu` 
+              : `Phù hợp với yêu cầu của bạn về ${queryAnalysis.primaryProductIntent || 'món ăn'}`
+          })),
+          timestamp: new Date().toISOString(),
+          queryAnalysis: queryAnalysis
+        };
+      }
+    }
+
+    // Nếu có userId, thử lấy đề xuất cá nhân hóa
+    if (userId) {
+      try {
+        // Sử dụng engine nâng cao với hỗ trợ query và cá nhân hóa
+        const result = await recommendationEngine.getEnhancedPersonalizedRecommendations(
+          userId,
+          query,
+          limit
+        );
+        
+        if (result.success && result.products && result.products.length > 0) {
+          // Nếu có phân tích query, ưu tiên các sản phẩm khớp với yêu cầu trực tiếp
+          if (queryAnalysis.extractedKeywords.length > 0) {
+            // Tính điểm trùng khớp cho từng sản phẩm
+            const enhancedProducts = result.products.map(product => {
+              const productName = product.name.toLowerCase();
+              const productDesc = (product.description || '').toLowerCase();
+              
+              // Tính số từ khóa trùng khớp
+              const matchingKeywords = queryAnalysis.extractedKeywords.filter(
+                keyword => productName.includes(keyword) || productDesc.includes(keyword)
+              );
+              
+              // Tính điểm trùng khớp
+              const matchScore = matchingKeywords.length / queryAnalysis.extractedKeywords.length;
+              
+              return {
+                ...product,
+                matchScore: matchScore,
+                reasoning: matchingKeywords.length > 0 
+                  ? `Phù hợp với yêu cầu "${matchingKeywords.join(', ')}" của bạn`
+                  : product.reasoning
+              };
+            });
+            
+            // Sắp xếp lại danh sách sản phẩm theo điểm trùng khớp
+            enhancedProducts.sort((a, b) => b.matchScore - a.matchScore);
+            
+            return {
+              products: enhancedProducts,
+              timestamp: new Date().toISOString(),
+              queryAnalysis: queryAnalysis
+            };
+          }
+          
+          return {
+            products: result.products,
+            timestamp: new Date().toISOString(),
+            queryAnalysis: queryAnalysis
+          };
+        }
+      } catch (error) {
+        console.error('Lỗi khi sử dụng recommendation engine nâng cao:', error);
+        // Tiếp tục sử dụng fallback bên dưới
+      }
+    }
 
     // Xác định ngữ cảnh thời gian
     const hour = new Date().getHours();
@@ -654,6 +746,22 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
         { taste: `%${intentData.taste}%` });
     }
     
+    // Nếu có phân tích query, thêm điều kiện lọc từ phân tích
+    if (queryAnalysis.extractedKeywords.length > 0) {
+      queryBuilder.andWhere(qb => {
+        let condition = "";
+        queryAnalysis.extractedKeywords.forEach((keyword, index) => {
+          if (index === 0) {
+            condition += `(LOWER(product.name) LIKE :kw${index} OR LOWER(product.description) LIKE :kw${index} OR LOWER(product.tags) LIKE :kw${index})`;
+          } else {
+            condition += ` OR (LOWER(product.name) LIKE :kw${index} OR LOWER(product.description) LIKE :kw${index} OR LOWER(product.tags) LIKE :kw${index})`;
+          }
+          qb.setParameter(`kw${index}`, `%${keyword}%`);
+        });
+        return condition;
+      });
+    }
+    
     // Lấy sản phẩm phù hợp
     const products = await queryBuilder.take(limit).getMany();
     
@@ -664,7 +772,10 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
         price: product.price,
         imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
         description: product.description,
-        stock: product.stock
+        stock: product.stock,
+        reasoning: queryAnalysis.extractedKeywords.length > 0 
+          ? `Phù hợp với từ khóa "${queryAnalysis.extractedKeywords.join(', ')}"`
+          : "Món ăn phổ biến phù hợp với thời điểm hiện tại"
       }));
     } else {
       // Nếu không tìm thấy sản phẩm phù hợp, lấy sản phẩm phổ biến
@@ -680,13 +791,15 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
         price: product.price,
         imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
         description: product.description,
-        stock: product.stock
+        stock: product.stock,
+        reasoning: "Sản phẩm phổ biến được nhiều người ưa thích"
       }));
     }
 
     return {
       products: recommendations || [],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      queryAnalysis: queryAnalysis
     };
   } catch (error) {
     console.error('Lỗi khi tạo đề xuất sản phẩm:', error);

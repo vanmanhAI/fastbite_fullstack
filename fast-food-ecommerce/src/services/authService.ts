@@ -28,60 +28,97 @@ export interface AuthResponse {
 
 // Đăng ký người dùng
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Đăng ký không thành công');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Đăng ký không thành công');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Lỗi đăng ký:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Đăng ký không thành công');
   }
-
-  return response.json();
 };
 
 // Đăng nhập
 export const login = async (data: LoginData): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Đăng nhập không thành công');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Đăng nhập không thành công');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Lỗi đăng nhập:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Đăng nhập không thành công');
   }
-
-  return response.json();
 };
 
 // Lấy thông tin người dùng hiện tại
 export const getCurrentUser = async (token: string): Promise<UserData> => {
-  const response = await fetch(`${API_URL}/auth/me`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  try {
+    const response = await fetch(`${API_URL}/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Không thể lấy thông tin người dùng');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Không thể lấy thông tin người dùng');
+    }
+
+    const data = await response.json();
+    return data.user;
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin người dùng:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Không thể lấy thông tin người dùng');
   }
-
-  const data = await response.json();
-  return data.user;
 };
 
-// Đăng xuất (chỉ xóa token ở client, không cần gọi API)
-export const logout = () => {
-  // Có thể thêm logic xử lý đăng xuất ở đây nếu cần
+// Đăng xuất
+export const logout = async (): Promise<void> => {
+  try {
+    // Gọi API đăng xuất để xóa cookie
+    await fetch(`${API_URL}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Lỗi khi đăng xuất:', error);
+  }
+  
+  // Xóa token và user data ở client
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 }; 

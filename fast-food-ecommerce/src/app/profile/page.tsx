@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { User, MapPin, CreditCard, Clock } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
+import LoadingSpinner from "@/components/loading-spinner"
 
 // Sample user data
 const userData = {
@@ -87,18 +91,45 @@ const orderHistory = [
 ]
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(userData)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedUser, setEditedUser] = useState(userData)
+  const { isAuthenticated, user } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+  })
 
-  const handleSaveProfile = () => {
-    setUser(editedUser)
-    setIsEditing(false)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login?redirect=/profile")
+      return
+    }
+
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+      })
+      setLoading(false)
+    }
+  }, [isAuthenticated, router, user])
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Chức năng cập nhật thông tin người dùng sẽ được triển khai sau
+    toast({
+      title: "Thông báo",
+      description: "Tính năng đang được phát triển!",
+    })
   }
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
-    return new Date(dateString).toLocaleDateString(undefined, options)
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   return (
@@ -120,69 +151,46 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isEditing ? (
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
+                  <User className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">Thông tin tài khoản</h1>
+                  <p className="text-gray-500">Xem và cập nhật thông tin cá nhân của bạn</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSave} className="space-y-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="name">Họ tên</Label>
                       <Input
                         id="name"
-                        value={editedUser.name}
-                        onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
+                        placeholder="Nhập họ tên của bạn"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
                         type="email"
-                        value={editedUser.email}
-                        onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
+                        placeholder="Nhập email của bạn"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        disabled
                       />
+                      <p className="text-xs text-gray-500">Email không thể thay đổi</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        value={editedUser.phone}
-                        onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={handleSaveProfile}>Save Changes</Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setEditedUser(user)
-                      }}
-                    >
-                      Cancel
-                    </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Full Name</p>
-                      <p className="font-medium">{user.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{user.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Phone</p>
-                      <p className="font-medium">{user.phone}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" onClick={() => setIsEditing(true)} className="mt-4">
-                    Edit Profile
-                  </Button>
-                </div>
-              )}
+
+                <Button type="submit">Lưu thay đổi</Button>
+              </form>
             </CardContent>
           </Card>
 

@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../config/database";
-import { UserPreference, PreferenceType } from "../models/UserPreference";
 import { UserBehavior, BehaviorType } from "../models/UserBehavior";
 import { Product } from "../models/Product";
 import { Category } from "../models/Category";
@@ -9,7 +8,6 @@ import { UserBehaviorService } from "../services/UserBehaviorService";
 import { IntentClassifierService } from "../services/intentClassifierService";
 import { RecommendationEngineService } from "../services/RecommendationEngineService";
 
-const userPreferenceRepository = AppDataSource.getRepository(UserPreference);
 const userBehaviorRepository = AppDataSource.getRepository(UserBehavior);
 const productRepository = AppDataSource.getRepository(Product);
 const categoryRepository = AppDataSource.getRepository(Category);
@@ -216,210 +214,25 @@ export const trackSearchQuery = async (req: Request, res: Response) => {
 };
 
 /**
- * Lấy tùy chọn người dùng
+ * API thông báo rằng tính năng sở thích người dùng đã bị loại bỏ
+ * @deprecated Tính năng sở thích người dùng đã bị loại bỏ
  */
 export const getUserPreferences = async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Cần đăng nhập để lấy tùy chọn cá nhân"
-      });
-    }
-    
-    // Lấy tất cả tùy chọn của người dùng
-    const preferences = await userPreferenceRepository.find({
-      where: { userId }
-    });
-    
-    return res.status(200).json({
-      success: true,
-      userPreference: {
-        categoryPreferences: preferences
-          .filter(p => p.preferenceType === PreferenceType.FAVORITE_CATEGORY)
-          .map(p => ({ id: p.categoryId, value: p.value })),
-        dietaryRestrictions: preferences
-          .filter(p => p.preferenceType === PreferenceType.DIETARY)
-          .map(p => p.value),
-        spiceLevel: preferences
-          .find(p => p.preferenceType === PreferenceType.SPICY_LEVEL)?.value || "medium",
-        tastePreferences: preferences
-          .filter(p => p.preferenceType === PreferenceType.OTHER && p.value.startsWith('taste:'))
-          .map(p => p.value.replace('taste:', '')),
-        allergens: preferences
-          .filter(p => p.preferenceType === PreferenceType.ALLERGEN)
-          .map(p => p.value),
-        priceRange: {
-          min: Number(preferences.find(p => p.preferenceType === PreferenceType.PRICE_RANGE && p.value.startsWith('min:'))?.value.replace('min:', '') || 0),
-          max: Number(preferences.find(p => p.preferenceType === PreferenceType.PRICE_RANGE && p.value.startsWith('max:'))?.value.replace('max:', '') || 1000)
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Lỗi khi lấy tùy chọn người dùng:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Đã xảy ra lỗi khi lấy tùy chọn người dùng",
-      error: error instanceof Error ? error.message : "Lỗi không xác định"
-    });
-  }
+  return res.status(410).json({
+    success: false,
+    message: "Tính năng này đã bị loại bỏ, hệ thống giờ sẽ dùng dữ liệu hành vi người dùng để cá nhân hóa đề xuất"
+  });
 };
 
 /**
- * Cập nhật tùy chọn người dùng
+ * API thông báo rằng tính năng cập nhật sở thích người dùng đã bị loại bỏ
+ * @deprecated Tính năng sở thích người dùng đã bị loại bỏ
  */
 export const updateUserPreferences = async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId(req);
-    const { 
-      categoryPreferences, 
-      dietaryRestrictions, 
-      spiceLevel, 
-      tastePreferences, 
-      allergens, 
-      priceRange 
-    } = req.body;
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Cần đăng nhập để cập nhật tùy chọn cá nhân"
-      });
-    }
-    
-    // Xóa tất cả tùy chọn hiện tại của người dùng
-    await userPreferenceRepository.delete({ userId });
-    
-    // Mảng để lưu trữ các tùy chọn mới
-    const newPreferences = [];
-    
-    // Thêm tùy chọn danh mục yêu thích
-    if (categoryPreferences && Array.isArray(categoryPreferences)) {
-      for (const category of categoryPreferences) {
-        if (typeof category === 'object' && category.id) {
-          newPreferences.push(userPreferenceRepository.create({
-            userId,
-            preferenceType: PreferenceType.FAVORITE_CATEGORY,
-            categoryId: category.id,
-            value: category.value || 'liked',
-            weight: 1.0
-          }));
-        }
-      }
-    }
-    
-    // Thêm các hạn chế ăn uống
-    if (dietaryRestrictions && Array.isArray(dietaryRestrictions)) {
-      for (const restriction of dietaryRestrictions) {
-        newPreferences.push(userPreferenceRepository.create({
-          userId,
-          preferenceType: PreferenceType.DIETARY,
-          value: restriction,
-          weight: 1.0
-        }));
-      }
-    }
-    
-    // Thêm mức độ cay
-    if (spiceLevel) {
-      newPreferences.push(userPreferenceRepository.create({
-        userId,
-        preferenceType: PreferenceType.SPICY_LEVEL,
-        value: spiceLevel,
-        weight: 1.0
-      }));
-    }
-    
-    // Thêm sở thích vị
-    if (tastePreferences && Array.isArray(tastePreferences)) {
-      for (const taste of tastePreferences) {
-        newPreferences.push(userPreferenceRepository.create({
-          userId,
-          preferenceType: PreferenceType.OTHER,
-          value: `taste:${taste}`,
-          weight: 1.0
-        }));
-      }
-    }
-    
-    // Thêm các dị ứng
-    if (allergens && Array.isArray(allergens)) {
-      for (const allergen of allergens) {
-        newPreferences.push(userPreferenceRepository.create({
-          userId,
-          preferenceType: PreferenceType.ALLERGEN,
-          value: allergen,
-          weight: 1.0
-        }));
-      }
-    }
-    
-    // Thêm khoảng giá
-    if (priceRange) {
-      if (priceRange.min !== undefined) {
-        newPreferences.push(userPreferenceRepository.create({
-          userId,
-          preferenceType: PreferenceType.PRICE_RANGE,
-          value: `min:${priceRange.min}`,
-          weight: 1.0
-        }));
-      }
-      
-      if (priceRange.max !== undefined) {
-        newPreferences.push(userPreferenceRepository.create({
-          userId,
-          preferenceType: PreferenceType.PRICE_RANGE,
-          value: `max:${priceRange.max}`,
-          weight: 1.0
-        }));
-      }
-    }
-    
-    // Lưu tất cả tùy chọn mới
-    if (newPreferences.length > 0) {
-      await userPreferenceRepository.save(newPreferences);
-    }
-    
-    // Lấy lại các tùy chọn đã lưu để trả về
-    const updatedPreferences = await userPreferenceRepository.find({
-      where: { userId }
-    });
-    
-    // Trả về định dạng dễ sử dụng
-    return res.status(200).json({
-      success: true,
-      message: "Đã cập nhật tùy chọn người dùng",
-      userPreference: {
-        categoryPreferences: updatedPreferences
-          .filter(p => p.preferenceType === PreferenceType.FAVORITE_CATEGORY)
-          .map(p => ({ id: p.categoryId, value: p.value })),
-        dietaryRestrictions: updatedPreferences
-          .filter(p => p.preferenceType === PreferenceType.DIETARY)
-          .map(p => p.value),
-        spiceLevel: updatedPreferences
-          .find(p => p.preferenceType === PreferenceType.SPICY_LEVEL)?.value || "medium",
-        tastePreferences: updatedPreferences
-          .filter(p => p.preferenceType === PreferenceType.OTHER && p.value.startsWith('taste:'))
-          .map(p => p.value.replace('taste:', '')),
-        allergens: updatedPreferences
-          .filter(p => p.preferenceType === PreferenceType.ALLERGEN)
-          .map(p => p.value),
-        priceRange: {
-          min: Number(updatedPreferences.find(p => p.preferenceType === PreferenceType.PRICE_RANGE && p.value.startsWith('min:'))?.value.replace('min:', '') || 0),
-          max: Number(updatedPreferences.find(p => p.preferenceType === PreferenceType.PRICE_RANGE && p.value.startsWith('max:'))?.value.replace('max:', '') || 1000)
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Lỗi khi cập nhật tùy chọn người dùng:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Đã xảy ra lỗi khi cập nhật tùy chọn người dùng",
-      error: error instanceof Error ? error.message : "Lỗi không xác định"
-    });
-  }
+  return res.status(410).json({
+    success: false,
+    message: "Tính năng này đã bị loại bỏ, hệ thống giờ sẽ dùng dữ liệu hành vi người dùng để cá nhân hóa đề xuất"
+  });
 };
 
 /**
@@ -428,7 +241,6 @@ export const updateUserPreferences = async (req: Request, res: Response) => {
 const generateRecommendations = async (
   products: any[],
   query: string,
-  userPreference: any,
   userBehavior: any,
   contextType: string,
   contextValue: string,
@@ -440,9 +252,8 @@ const generateRecommendations = async (
     const systemPrompt = `
       Bạn là một trợ lý giúp đề xuất món ăn dựa trên:
       1. Từ khóa tìm kiếm của người dùng
-      2. Sở thích cá nhân (nếu có)
-      3. Hành vi mua hàng và duyệt web trong quá khứ
-      4. Ngữ cảnh thời gian (bữa sáng/trưa/tối)
+      2. Hành vi mua hàng và duyệt web trong quá khứ
+      3. Ngữ cảnh thời gian (bữa sáng/trưa/tối)
       
       Với mỗi món ăn đề xuất, hãy cung cấp:
       1. Một đánh giá độ phù hợp (từ 0 đến 1)
@@ -450,17 +261,6 @@ const generateRecommendations = async (
       
       Chỉ đề xuất món ăn có trong danh sách sản phẩm đã cho.
     `;
-    
-    const userPreferenceText = userPreference 
-      ? `
-        Sở thích món ăn: ${userPreference.categoryPreferences?.map(c => c.value).join(', ') || 'không có'}
-        Hạn chế ăn uống: ${userPreference.dietaryRestrictions?.join(', ') || 'không có'}
-        Mức độ cay: ${userPreference.spiceLevel || 'trung bình'}
-        Sở thích vị: ${userPreference.tastePreferences?.join(', ') || 'không có'}
-        Dị ứng: ${userPreference.allergens?.join(', ') || 'không có'}
-        Khoảng giá: ${userPreference.priceRange?.min || 0}k - ${userPreference.priceRange?.max || 1000}k
-      `
-      : 'Không có thông tin sở thích cá nhân.';
     
     const userBehaviorText = userBehavior
       ? `
@@ -473,9 +273,6 @@ const generateRecommendations = async (
     
     // Tạo prompt đầy đủ cho AI
     const fullPrompt = `
-      # Thông tin sở thích người dùng
-      ${userPreferenceText}
-      
       # Hành vi người dùng
       ${userBehaviorText}
       

@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils"
 import { useCart } from "@/contexts/CartContext"
 import { Product } from "@/services/productService"
 import { useToast } from "@/components/ui/use-toast"
+import recommendationService from "@/services/recommendationService"
 
 interface ProductCardProps {
   product: Product
@@ -25,6 +26,15 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       onAddToCart()
     } else {
       addToCart(product)
+      
+      // Theo dõi hành vi thêm vào giỏ hàng
+      try {
+        recommendationService.trackAddToCart(product.id)
+        console.log(`Đã gọi trackAddToCart cho sản phẩm ID: ${product.id}`)
+      } catch (error) {
+        console.error("Lỗi khi theo dõi hành vi thêm vào giỏ hàng:", error)
+      }
+      
       toast({
         title: "Đã thêm vào giỏ hàng",
         description: `${product.name} đã được thêm vào giỏ hàng`,

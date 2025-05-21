@@ -15,6 +15,12 @@ export interface Review {
   }
 }
 
+export interface ReviewResponse {
+  message: string
+  review: Review
+  updated?: boolean
+}
+
 // Lấy đánh giá của một sản phẩm
 export const getReviewsByProduct = async (
   productId: number
@@ -39,18 +45,21 @@ export const getReviewsByProduct = async (
 
 // Tạo đánh giá mới
 export const createReview = async (
-  productId: number,
-  reviewData: { rating: number, comment: string },
+  reviewData: { productId: number, rating: number, comment: string },
   token: string
-): Promise<Review> => {
+): Promise<ReviewResponse> => {
   try {
+    const productId = reviewData.productId;
     const response = await fetch(`${API_URL}/products/${productId}/reviews`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(reviewData),
+      body: JSON.stringify({
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      }),
     })
 
     if (!response.ok) {
@@ -59,7 +68,7 @@ export const createReview = async (
     }
 
     const data = await response.json()
-    return data.review
+    return data
   } catch (error) {
     console.error("Lỗi khi tạo đánh giá:", error)
     throw error

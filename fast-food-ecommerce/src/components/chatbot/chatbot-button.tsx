@@ -1,12 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, X } from "lucide-react"
 import ChatbotInterface from "./chatbot-interface"
 
 export default function ChatbotButton() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    // Khôi phục trạng thái từ localStorage nếu có
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chatbot_is_open') === 'true'
+    }
+    return false
+  })
+
+  // Lưu trạng thái mở/đóng vào localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chatbot_is_open', String(isOpen))
+    }
+  }, [isOpen])
+
+  // Thêm xử lý sự kiện chuyển trang
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Đảm bảo lưu trạng thái trước khi chuyển trang
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('chatbot_is_open', String(isOpen))
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [isOpen])
 
   return (
     <>
@@ -19,7 +47,7 @@ export default function ChatbotButton() {
       </Button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-10rem)] shadow-xl rounded-lg overflow-hidden">
+        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-10rem)] shadow-md rounded-lg overflow-hidden">
           <ChatbotInterface onClose={() => setIsOpen(false)} />
         </div>
       )}

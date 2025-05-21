@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import useEmblaCarousel from 'embla-carousel-react'
-import { getAllCategories } from '@/services/categoryService'
+import { getAllCategories, Category } from '@/services/categoryService'
+import recommendationService from '@/services/recommendationService'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface CategorySliderProps {
   className?: string
 }
 
 export default function CategorySlider({ className }: CategorySliderProps) {
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const { isAuthenticated } = useAuth()
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: false, 
     dragFree: true,
@@ -29,7 +33,7 @@ export default function CategorySlider({ className }: CategorySliderProps) {
         const response = await getAllCategories()
         // Lấy các danh mục cha (không có parent_id)
         if (response && response.length > 0) {
-          const mainCategories = response.filter((cat: any) => cat.parent_id === null)
+          const mainCategories = response.filter((cat: Category) => !cat.parentId)
           if (mainCategories.length > 0) {
             setCategories(mainCategories)
           }
@@ -44,13 +48,33 @@ export default function CategorySlider({ className }: CategorySliderProps) {
     fetchCategories()
   }, [])
 
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev()
-  }, [emblaApi])
+  const navigateNext = () => {
+    if (currentIndex < categories.length - 4) {
+      setCurrentIndex(prevIndex => prevIndex + 1)
+    } else {
+      setCurrentIndex(0) // Loop back to start
+    }
+  }
 
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext()
-  }, [emblaApi])
+  const navigatePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prevIndex => prevIndex - 1)
+    } else {
+      setCurrentIndex(categories.length - 4) // Loop to end
+    }
+  }
+
+  const handleCategoryClick = (category: Category) => {
+    try {
+      // Theo dõi click vào danh mục
+      if (isAuthenticated) {
+        recommendationService.trackCategoryClick(category.id, category.name)
+        console.log(`Đã gọi trackCategoryClick cho danh mục ID: ${category.id}, tên: ${category.name}`)
+      }
+    } catch (error) {
+      console.error('Lỗi khi theo dõi click danh mục:', error)
+    }
+  }
 
   if (loading) {
     return (
@@ -61,6 +85,8 @@ export default function CategorySlider({ className }: CategorySliderProps) {
   if (categories.length === 0) {
     return null
   }
+
+  const visibleCategories = categories.slice(currentIndex, currentIndex + 4)
 
   // Tạo màu nền khác nhau cho mỗi danh mục
   const colors = [
@@ -78,16 +104,17 @@ export default function CategorySlider({ className }: CategorySliderProps) {
     <div className={`relative ${className}`}>
       <div className="embla overflow-hidden" ref={emblaRef}>
         <div className="embla__container flex">
-          {categories.map((category, index) => (
+          {visibleCategories.map((category, index) => (
             <div key={category.id} className="embla__slide mr-4 flex-grow-0 flex-shrink-0 min-w-[180px] md:min-w-[200px]">
               <Link 
                 href={`/products?category=${category.slug}`}
+                onClick={() => handleCategoryClick(category)}
                 className={`block h-full ${colors[index % colors.length]} rounded-xl border p-3 transition-colors duration-200 group hover:shadow-md`}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0 h-12 w-12 overflow-hidden rounded-lg">
                     <img 
-                      src={category.image_url || `/placeholder.svg?height=100&width=100&text=${encodeURIComponent(category.name)}`}
+                      src={category.imageUrl || `/placeholder.svg?height=100&width=100&text=${encodeURIComponent(category.name)}`}
                       alt={category.name}
                       className="h-full w-full object-cover"
                       onError={(e) => {
@@ -100,9 +127,9 @@ export default function CategorySlider({ className }: CategorySliderProps) {
                   <div>
                     <h3 className="font-medium">{category.name}</h3>
                     <p className="text-xs truncate opacity-70">{
-                      category.description.length > 30 
+                      category.description && category.description.length > 30 
                         ? category.description.substring(0, 30) + '...' 
-                        : category.description
+                        : category.description || 'Không có mô tả'
                     }</p>
                   </div>
                 </div>
@@ -117,7 +144,7 @@ export default function CategorySlider({ className }: CategorySliderProps) {
         variant="outline" 
         size="icon" 
         className="absolute -left-5 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full bg-white border-gray-200 text-gray-800 shadow-lg hover:bg-gray-50"
-        onClick={scrollPrev}
+        onClick={navigatePrev}
       >
         <ChevronLeft className="h-5 w-5" />
       </Button>
@@ -126,7 +153,7 @@ export default function CategorySlider({ className }: CategorySliderProps) {
         variant="outline" 
         size="icon" 
         className="absolute -right-5 top-1/2 transform -translate-y-1/2 h-10 w-10 rounded-full bg-white border-gray-200 text-gray-800 shadow-lg hover:bg-gray-50"
-        onClick={scrollNext}
+        onClick={navigateNext}
       >
         <ChevronRight className="h-5 w-5" />
       </Button>

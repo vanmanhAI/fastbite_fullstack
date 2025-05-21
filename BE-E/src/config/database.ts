@@ -12,7 +12,6 @@ import { ChatLog } from "../models/ChatLog";
 import { InventoryTransaction } from "../models/InventoryTransaction";
 import { Payment } from "../models/Payment";
 import { UserBehavior } from "../models/UserBehavior";
-import { UserPreference } from "../models/UserPreference";
 import { ProductLike } from "../models/ProductLike";
 import { Cart } from "../models/Cart";
 import path from "path";
@@ -43,7 +42,6 @@ export const AppDataSource = new DataSource({
     Promotion,
     ChatLog,
     UserBehavior,
-    UserPreference,
     ProductLike,
     Cart
   ],

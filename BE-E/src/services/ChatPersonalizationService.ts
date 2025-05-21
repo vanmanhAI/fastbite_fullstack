@@ -1,6 +1,5 @@
 import { AppDataSource } from "../config/database";
 import { UserBehavior, BehaviorType } from "../models/UserBehavior";
-import { UserPreference, PreferenceType } from "../models/UserPreference";
 import { Product } from "../models/Product";
 import { Category } from "../models/Category";
 import { User } from "../models/User";
@@ -12,7 +11,6 @@ import { extractKeywords } from "../utils/textProcessing";
  */
 export class ChatPersonalizationService {
   private readonly behaviorRepository = AppDataSource.getRepository(UserBehavior);
-  private readonly preferenceRepository = AppDataSource.getRepository(UserPreference);
   private readonly productRepository = AppDataSource.getRepository(Product);
   private readonly categoryRepository = AppDataSource.getRepository(Category);
   private readonly userRepository = AppDataSource.getRepository(User);
@@ -40,7 +38,7 @@ export class ChatPersonalizationService {
       // Dữ liệu tổng hợp
       const result: any = {
         userProfile: {
-          name: user.fullName || user.username,
+          name: user.name,
           email: user.email,
           registeredAt: user.createdAt,
           lastActivity: user.updatedAt
@@ -50,20 +48,9 @@ export class ChatPersonalizationService {
         insights: {}
       };
       
-      // Lấy sở thích người dùng
-      const preferences = await this.preferenceRepository.find({
-        where: { userId },
-        relations: ["category"]
-      });
-      
-      if (preferences.length > 0) {
-        result.preferences.favoriteCategories = preferences
-          .filter(p => p.preferenceType === PreferenceType.FAVORITE_CATEGORY)
-          .map(p => ({
-            id: p.categoryId,
-            name: p.category?.name || "Không xác định",
-            weight: p.weight
-          }));
+      // Sử dụng preferences từ user nếu có
+      if (user.preferences) {
+        result.preferences = user.preferences;
       }
       
       // Lấy và phân tích các hành vi tìm kiếm
@@ -126,7 +113,7 @@ export class ChatPersonalizationService {
             id: b.productId,
             name: b.product?.name || "Không xác định",
             count: b.count,
-            lastViewed: b.updatedAt
+            lastViewed: b.createdAt
           }));
         
         result.behaviors.viewed = {
@@ -189,7 +176,7 @@ export class ChatPersonalizationService {
         topInterests: Array.from(allKeywords).slice(0, 15),
         activityLevel: this.calculateActivityLevel(allBehaviors),
         preferredTimeOfDay: this.analyzeActivityTimes(allBehaviors),
-        recommendationType: this.determineRecommendationType(preferences, viewBehaviors, likedProducts)
+        recommendationType: this.determineRecommendationTypeFromBehaviors(viewBehaviors, likedProducts)
       };
       
       return {
@@ -200,8 +187,7 @@ export class ChatPersonalizationService {
       console.error("Lỗi khi lấy dữ liệu cá nhân hóa:", error);
       return {
         success: false,
-        message: "Lỗi khi lấy dữ liệu cá nhân hóa",
-        error: error instanceof Error ? error.message : "Lỗi không xác định"
+        message: "Đã xảy ra lỗi khi lấy dữ liệu cá nhân hóa"
       };
     }
   }
@@ -257,28 +243,21 @@ export class ChatPersonalizationService {
   
   /**
    * Xác định loại đề xuất phù hợp nhất với người dùng
-   * @param preferences Sở thích người dùng
    * @param viewBehaviors Hành vi xem sản phẩm
    * @param likedProducts Sản phẩm đã thích
    * @returns Loại đề xuất phù hợp
    */
-  private determineRecommendationType(
-    preferences: UserPreference[], 
+  private determineRecommendationTypeFromBehaviors(
     viewBehaviors: UserBehavior[],
     likedProducts: ProductLike[]
   ): 'category_based' | 'similarity_based' | 'popular' | 'hybrid' {
-    // Nếu có sở thích danh mục rõ ràng
-    if (preferences.length >= 3) {
-      return 'category_based';
-    }
-    
     // Nếu người dùng có nhiều hành vi xem sản phẩm
     if (viewBehaviors.length > 10 || likedProducts.length > 5) {
       return 'similarity_based';
     }
-    
-    // Nếu người dùng có cả sở thích và hành vi
-    if (preferences.length > 0 && (viewBehaviors.length > 5 || likedProducts.length > 2)) {
+
+    // Nếu người dùng có hoạt động vừa phải
+    if (viewBehaviors.length > 5 || likedProducts.length > 2) {
       return 'hybrid';
     }
     

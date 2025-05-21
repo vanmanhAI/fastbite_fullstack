@@ -39,7 +39,7 @@ export class RecommendationEngineService {
       where: { userId },
       relations: ["product", "product.categories"],
       order: { createdAt: "DESC" },
-      take: 300 // Tăng từ 200 lên 300 để có nhiều dữ liệu hơn
+      take: 300 
     });
 
     const favoriteCategories = new Map<number, number>();
@@ -452,3 +452,4 @@ export class RecommendationEngineService {
     }
   }
 } 
+ 

@@ -7,7 +7,6 @@ import ProductCard from "@/components/product-card"
 import CategorySection from "@/components/category-section"
 import PromotionBanner from "@/components/promotion-banner"
 import ProductBanner from "@/components/product-banner"
-import CategoryBanner from "@/components/category-banner"
 import ChatbotButton from "@/components/chatbot/chatbot-button"
 import { getProducts } from '@/services/productService';
 import { getActivePromotions } from '@/services/promotionService';
@@ -45,9 +44,6 @@ export default function Home() {
     <main className="min-h-screen">
       {/* Product Banner - NEW */}
       <ProductBanner className="mt-8" />
-
-      {/* Categories Banner - NEW */}
-      <CategoryBanner className="bg-gray-50" />
 
       {/* Promotion Banner */}
       <PromotionBanner promotions={promotions} />

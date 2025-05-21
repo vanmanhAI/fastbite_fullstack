@@ -22,7 +22,7 @@ function containsAny(text: string, keywords: string[]): boolean {
 
 // Hàm phát hiện danh mục từ text
 async function detectCategory(message: string): Promise<string | null> {
-  try {
+      try {
     const lowerMsg = message.toLowerCase();
     const categoryRepository = AppDataSource.getRepository(Category);
     const categories = await categoryRepository.find();
@@ -178,7 +178,7 @@ export const classifyUserIntent = async (message: string): Promise<UserIntent> =
     intent: 'general',
     confidence: 0.5,
     entities: extractEntities(lowerMsg)
-  };
+    };
 };
 
 // Phân tích dựa trên từ khóa

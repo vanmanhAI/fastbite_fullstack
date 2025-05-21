@@ -6,7 +6,6 @@ import { Review } from "./Review";
 import { ChatLog } from "./ChatLog";
 import { Cart } from "./Cart";
 import { UserBehavior } from "./UserBehavior";
-import { UserPreference } from "./UserPreference";
 
 export enum UserRole {
   CUSTOMER = "customer",
@@ -72,9 +71,6 @@ export class User {
 
   @OneToMany(() => UserBehavior, behavior => behavior.user)
   behaviors: UserBehavior[];
-
-  @OneToMany(() => UserPreference, preference => preference.user)
-  userPreferences: UserPreference[];
 
   @OneToMany(() => Address, address => address.user)
   addresses: Address[];
