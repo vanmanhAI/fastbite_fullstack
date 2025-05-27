@@ -61,6 +61,9 @@ export class Product {
   @Column({ type: "boolean", default: true, name: "is_active" })
   isActive: boolean;
 
+  @Column({ type: "boolean", default: false, name: "is_deleted" })
+  isDeleted: boolean;
+
   @Column({ type: "decimal", precision: 2, scale: 1, default: 0, name: "rating" })
   rating: number;
 

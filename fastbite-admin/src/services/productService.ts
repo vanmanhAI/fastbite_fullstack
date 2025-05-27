@@ -20,13 +20,28 @@ export const getProducts = async (params?: ProductParams): Promise<{
       { params }
     );
     
+    // Xử lý và chuẩn hóa dữ liệu sản phẩm
+    const products = (response.data.data || [])
+      .filter(product => !product.isDeleted) // Lọc bỏ các sản phẩm đã xóa
+      .map(product => {
+        // Đảm bảo trường status luôn được thiết lập dựa trên isActive và stock
+        if (product.stock <= 0) {
+          // Nếu stock = 0, luôn đánh dấu là unavailable
+          product.status = 'unavailable';
+          product.isActive = false;
+        } else if (!product.status && product.isActive !== undefined) {
+          product.status = product.isActive ? 'active' : 'unavailable';
+        }
+        return product;
+      });
+    
     return {
-      products: response.data.data || [],
+      products,
       pagination: response.data.pagination
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching products:', error);
-    return { products: [] };
+    throw new Error(error.response?.data?.message || 'Không thể tải danh sách sản phẩm');
   }
 };
 
@@ -35,13 +50,35 @@ export const getProducts = async (params?: ProductParams): Promise<{
  */
 export const getProductById = async (id: number | string): Promise<Product | null> => {
   try {
-    const response = await axiosClient.get<ApiResponse<Product>>(
+    const response = await axiosClient.get(
       API_ENDPOINTS.PRODUCT_DETAIL(id)
     );
-    return response.data.data || null;
-  } catch (error) {
-    console.error(`Error fetching product with id ${id}:`, error);
+    
+    // API trả về { product: {...} } thay vì { data: {...} }
+    const product = response.data.product || response.data.data;
+    
+    if (product) {
+      // Đảm bảo trường status luôn được thiết lập dựa trên isActive và stock
+      if (product.stock <= 0) {
+        // Nếu stock = 0, luôn đánh dấu là unavailable
+        product.status = 'unavailable';
+        product.isActive = false;
+      } else if (!product.status && product.isActive !== undefined) {
+        product.status = product.isActive ? 'active' : 'unavailable';
+      }
+      
+      // Chuyển đổi category thành categoryId nếu cần
+      if (product.categories && product.categories.length > 0 && !product.categoryId) {
+        product.categoryId = product.categories[0].id;
+      }
+      
+      return product;
+    }
+    
     return null;
+  } catch (error: any) {
+    console.error(`Error fetching product with id ${id}:`, error);
+    throw new Error(error.response?.data?.message || `Không thể tải thông tin sản phẩm với ID ${id}`);
   }
 };
 
@@ -96,22 +133,6 @@ export const deleteProduct = async (id: number | string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error(`Error deleting product with id ${id}:`, error);
-    return false;
-  }
-};
-
-/**
- * Cập nhật trạng thái sản phẩm
- */
-export const updateProductStatus = async (
-  id: number | string, 
-  status: 'active' | 'unavailable'
-): Promise<boolean> => {
-  try {
-    await axiosClient.patch(API_ENDPOINTS.PRODUCT_DETAIL(id), { status });
-    return true;
-  } catch (error) {
-    console.error(`Error updating product status with id ${id}:`, error);
     return false;
   }
 };

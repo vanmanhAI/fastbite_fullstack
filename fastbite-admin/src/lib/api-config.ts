@@ -25,6 +25,10 @@ export const API_ENDPOINTS = {
   CUSTOMERS: `${API_URL}/users`,
   CUSTOMER_DETAIL: (id: number | string) => `${API_URL}/users/${id}`,
   
+  // Banners
+  BANNERS: `${API_URL}/banners`,
+  BANNER_DETAIL: (id: number | string) => `${API_URL}/banners/${id}`,
+  
   // Stats
   STATS: `${API_URL}/stats`,
 };

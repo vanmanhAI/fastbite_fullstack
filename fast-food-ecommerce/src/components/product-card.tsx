@@ -69,12 +69,18 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
           </div>
         </CardContent>
         <CardFooter className="p-4 pt-0">
-          <Button
-            className="w-full"
-            onClick={handleAddToCart}
-          >
-            Thêm vào giỏ
-          </Button>
+          {(!product.stock || product.stock <= 0) ? (
+            <Button className="w-full" disabled variant="secondary">
+              Hết hàng
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={handleAddToCart}
+            >
+              Thêm vào giỏ
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </Link>

@@ -4,13 +4,28 @@ export interface Product {
   name: string;
   description: string;
   category: string;
-  categoryId: number;
+  categoryId?: number;
   price: number;
   stock: number;
   status: 'active' | 'unavailable';
   imageUrl?: string;
+  tags?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+
+  calories?: number;
+  isVegetarian: boolean;
+  isFeatured: boolean;
+  isActive?: boolean;   // Có thể có hoặc không từ API
+  rating: number;
+  numReviews: number;
+  likeCount: number;
   createdAt: string;
   updatedAt: string;
+  categories?: Category[];
+  isDeleted?: boolean;
+  preparationTime?: number;
+  timestamp?: Date;
 }
 
 // Kiểu dữ liệu của danh mục sản phẩm
@@ -119,6 +134,38 @@ export interface ProductParams {
   search?: string;
   category?: string | number;
   status?: string;
+  sortBy?: string;
+  order?: 'asc' | 'desc';
+}
+
+// Kiểu dữ liệu của banner
+export interface Banner {
+  id: number;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  buttonText?: string;
+  type: 'hero' | 'promotion' | 'product' | 'category';
+  position: 'home_top' | 'home_middle' | 'home_bottom' | 'category_page' | 'product_page';
+  order: number;
+  backgroundColor?: string;
+  textColor?: string;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Kiểu dữ liệu cho tham số API của banner
+export interface BannerParams {
+  page?: number;
+  limit?: number;
+  type?: string;
+  position?: string;
+  active?: string;
   sortBy?: string;
   order?: 'asc' | 'desc';
 } 

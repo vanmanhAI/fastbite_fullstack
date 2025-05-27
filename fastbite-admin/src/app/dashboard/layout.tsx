@@ -58,6 +58,7 @@ export default function DashboardLayout({
     { name: "Sản phẩm", href: "/dashboard/products", icon: "🍔" },
     { name: "Đơn hàng", href: "/dashboard/orders", icon: "🛒" },
     { name: "Mã giảm giá", href: "/dashboard/coupons", icon: "🏷️" },
+    { name: "Banner", href: "/dashboard/banners", icon: "🖼️" },
     { name: "Khách hàng", href: "/dashboard/customers", icon: "👥" },
     { name: "Cài đặt", href: "/dashboard/settings", icon: "⚙️" },
   ];

@@ -6,19 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0
-  }).format(amount);
+  // Làm tròn giá trị để loại bỏ phần thập phân, đảm bảo đồng bộ với formatPrice
+  const roundedAmount = Math.round(amount);
+  return roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " ₫";
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0
-  }).format(price);
+  // Làm tròn giá trị để loại bỏ phần thập phân
+  const roundedPrice = Math.round(price);
+  return roundedPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " ₫";
 }
 
 export function debounce<T extends (...args: any[]) => any>(

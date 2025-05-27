@@ -16,11 +16,13 @@ export const getProducts = async (req: Request, res: Response) => {
     const search = req.query.search as string;
     const featured = req.query.featured === "true";
     const vegetarian = req.query.vegetarian === "true";
+    const status = req.query.status as string;
     
     const skip = (page - 1) * limit;
     
     let query = productRepository.createQueryBuilder("product")
-      .leftJoinAndSelect("product.categories", "category");
+      .leftJoinAndSelect("product.categories", "category")
+      .where("product.isDeleted = :isDeleted", { isDeleted: false });
     
     // Áp dụng các điều kiện lọc
     if (category) {
@@ -40,8 +42,12 @@ export const getProducts = async (req: Request, res: Response) => {
       query = query.andWhere("product.isVegetarian = :vegetarian", { vegetarian: true });
     }
     
-    // Chỉ lấy sản phẩm đang hoạt động
-    query = query.andWhere("product.isActive = :isActive", { isActive: true });
+    // Lọc theo trạng thái nếu được cung cấp
+    if (status === 'active') {
+      query = query.andWhere("product.isActive = :isActive", { isActive: true });
+    } else if (status === 'unavailable') {
+      query = query.andWhere("product.isActive = :isActive", { isActive: false });
+    }
     
     // Đếm tổng số sản phẩm
     const total = await query.getCount();
@@ -74,7 +80,10 @@ export const getProductById = async (req: Request, res: Response) => {
     const { id } = req.params;
     
     const product = await productRepository.findOne({
-      where: { id: parseInt(id) },
+      where: { 
+        id: parseInt(id),
+        isDeleted: false // Chỉ lấy sản phẩm chưa bị xóa
+      },
       relations: ["categories", "reviews", "reviews.user"]
     });
     
@@ -103,7 +112,10 @@ export const createProduct = async (req: Request, res: Response) => {
       status,
       categoryId,
       isVegetarian,
-      isFeatured
+      isFeatured,
+      tags,
+      preparationTime,
+      calories
     } = req.body;
     
     if (!name || !price) {
@@ -142,7 +154,10 @@ export const createProduct = async (req: Request, res: Response) => {
       stock: parseInt(stock) || 0,
       isVegetarian: isVegetarian === 'true' || false,
       isFeatured: isFeatured === 'true' || false,
-      isActive: status === 'active'
+      isActive: status === 'active',
+      tags: tags || '',
+      preparationTime: preparationTime ? parseInt(preparationTime) : undefined,
+      calories: calories ? parseInt(calories) : undefined
     });
     
     // Lưu sản phẩm
@@ -182,7 +197,10 @@ export const updateProduct = async (req: Request, res: Response) => {
       status,
       categoryId,
       isVegetarian,
-      isFeatured
+      isFeatured,
+      tags,
+      preparationTime,
+      calories
     } = req.body;
     
     // Tìm sản phẩm
@@ -222,7 +240,19 @@ export const updateProduct = async (req: Request, res: Response) => {
       (isVegetarian !== undefined && isVegetarian !== 'false' && isVegetarian !== false ? product.isVegetarian : false);
     product.isFeatured = isFeatured === 'true' || (isFeatured === true) || 
       (isFeatured !== undefined && isFeatured !== 'false' && isFeatured !== false ? product.isFeatured : false);
-    product.isActive = status === 'active' || status === undefined ? true : false;
+    
+    // Cập nhật trạng thái sản phẩm dựa trên status và stock
+    if (product.stock <= 0) {
+      // Nếu stock = 0, sản phẩm luôn ở trạng thái không khả dụng
+      product.isActive = false;
+    } else {
+      // Nếu stock > 0, trạng thái phụ thuộc vào giá trị status
+      product.isActive = status === 'active' || status === undefined ? true : false;
+    }
+    
+    product.tags = tags !== undefined ? tags : product.tags;
+    product.preparationTime = preparationTime ? parseInt(preparationTime) : product.preparationTime;
+    product.calories = calories ? parseInt(calories) : product.calories;
     
     // Lưu thông tin cập nhật
     await productRepository.save(product);
@@ -259,8 +289,9 @@ export const deleteProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
     
-    // Đánh dấu là không hoạt động
+    // Đánh dấu sản phẩm đã xóa
     product.isActive = false;
+    product.isDeleted = true;
     await productRepository.save(product);
     
     return res.status(200).json({ message: "Xóa sản phẩm thành công" });

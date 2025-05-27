@@ -6,55 +6,44 @@ import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import useEmblaCarousel from 'embla-carousel-react'
-import { formatCurrency } from "@/lib/utils"
-import { getProducts } from '@/services/productService'
+import { getProductListBanners, Banner } from "@/services/bannerService"
 
 interface ProductHeroSliderProps {
   className?: string
 }
 
 export default function ProductHeroSlider({ className }: ProductHeroSliderProps) {
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, dragFree: true })
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
 
-  // Lấy sản phẩm nổi bật từ database
+  // Lấy banner từ database
   useEffect(() => {
-    async function fetchFeaturedProducts() {
-
-
-
-
-
-
-      
+    async function fetchBanners() {
       try {
         setLoading(true)
-        // Lấy 8 sản phẩm nổi bật từ database
-        console.log("Đang gọi API lấy sản phẩm nổi bật...")
-        const productsResponse = await getProducts(1, 8, undefined, undefined, true)
-        console.log("Response API:", productsResponse)
-        console.log("Sản phẩm nổi bật:", productsResponse?.data?.length || 0, "sản phẩm")
+        console.log("Đang gọi API lấy banner trang sản phẩm...")
+        const data = await getProductListBanners()
+        console.log("Banner nhận được:", data?.length || 0, "banner")
         
-        if (productsResponse?.data && productsResponse.data.length > 0) {
-          console.log("Sử dụng dữ liệu sản phẩm từ API")
-          setFeaturedProducts(productsResponse.data)
+        if (data && data.length > 0) {
+          console.log("Sử dụng dữ liệu banner từ API")
+          setBanners(data)
         } else {
-          console.log("Không có sản phẩm nổi bật từ API, sử dụng dữ liệu mẫu")
-          setFeaturedProducts(sampleProducts)
+          console.log("Không có banner từ API")
+          setBanners([])
         }
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu sản phẩm cho slider:", error)
-        console.log("Sử dụng dữ liệu mẫu do lỗi API")
-        setFeaturedProducts(sampleProducts)
+        console.error("Lỗi khi tải dữ liệu banner cho slider:", error)
+        setBanners([])
       } finally {
         setLoading(false)
       }
     }
     
-    fetchFeaturedProducts()
+    fetchBanners()
   }, [])
 
   // Thiết lập embla carousel
@@ -109,7 +98,7 @@ export default function ProductHeroSlider({ className }: ProductHeroSliderProps)
     )
   }
 
-  if (featuredProducts.length === 0) {
+  if (banners.length === 0) {
     return null
   }
 
@@ -126,22 +115,26 @@ export default function ProductHeroSlider({ className }: ProductHeroSliderProps)
     <div className={`relative overflow-hidden rounded-xl ${className}`}>
       <div className="embla overflow-hidden" ref={emblaRef}>
         <div className="embla__container flex">
-          {featuredProducts.map((product, index) => (
-            <div key={product.id} className="embla__slide min-w-full relative">
-              <div className={`w-full h-[400px] bg-gradient-to-r ${gradients[index % gradients.length]} relative overflow-hidden rounded-xl`}>
+          {banners.map((banner, index) => (
+            <div key={banner.id} className="embla__slide min-w-full relative">
+              <div className={`w-full h-[400px] bg-gradient-to-r ${gradients[index % gradients.length]} relative overflow-hidden rounded-xl`}
+                   style={{
+                     backgroundColor: banner.backgroundColor || undefined,
+                     color: banner.textColor || "#ffffff"
+                   }}>
                 <div className="absolute inset-0 bg-black/20"></div>
                 
                 {/* Background image */}
                 <div className="absolute inset-0 opacity-40">
                   <img 
-                    src={product.image_url || product.imageUrl || "/placeholder.svg?height=400&width=800&text=Food"} 
-                    alt={product.name}
+                    src={banner.imageUrl || "/placeholder.svg?height=400&width=800&text=Banner"} 
+                    alt={banner.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.log("Lỗi tải hình ảnh:", product.name, product.image_url || product.imageUrl);
+                      console.log("Lỗi tải hình ảnh banner:", banner.title, banner.imageUrl);
                       const target = e.target as HTMLImageElement;
                       target.onerror = null;
-                      target.src = "/placeholder.svg?height=400&width=800&text=Food";
+                      target.src = "/placeholder.svg?height=400&width=800&text=Banner";
                     }}
                   />
                 </div>
@@ -149,55 +142,34 @@ export default function ProductHeroSlider({ className }: ProductHeroSliderProps)
                 {/* Content */}
                 <div className="relative h-full container mx-auto px-6 flex flex-col md:flex-row items-center justify-between py-12">
                   <div className="md:w-1/2 text-white space-y-4 z-10">
-                    <h2 className="text-2xl md:text-4xl font-bold mb-2">{product.name}</h2>
+                    <h2 className="text-2xl md:text-4xl font-bold mb-2">{banner.title}</h2>
                     
                     <p className="text-white/90 text-sm md:text-base mb-4 max-w-md">
-                      {product.description}
+                      {banner.description || ""}
                     </p>
                     
-                    <div className="flex items-center gap-3 mb-6">
-                      <span className="text-2xl font-bold">{formatCurrency(product.price)}</span>
-                      
-                      {(product.is_vegetarian || product.isVegetarian) && (
-                        <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                          Chay
-                        </span>
-                      )}
-                      
-                      {product.tags && typeof product.tags === 'string' && JSON.parse(product.tags).includes("bestseller") && (
-                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                          Bán chạy
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-3">
-                      <Link href={`/products/${product.id}`}>
-                        <Button className="bg-white text-black hover:bg-gray-100">
-                          Xem chi tiết
-                        </Button>
-                      </Link>
-                      
-                      <Link href="/products">
-                        <Button variant="outline" className="border-white text-white hover:bg-white/20">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Xem thêm
-                        </Button>
-                      </Link>
-                    </div>
+                    {banner.buttonText && banner.linkUrl && (
+                      <div className="flex flex-wrap gap-3 mt-6">
+                        <Link href={banner.linkUrl}>
+                          <Button className="bg-white text-black hover:bg-gray-100">
+                            {banner.buttonText}
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="md:w-1/2 hidden md:flex justify-end items-center">
                     <Card className="w-64 h-64 overflow-hidden rounded-full border-4 border-white/30 shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
                       <img 
-                        src={product.image_url || product.imageUrl || "/placeholder.svg?height=300&width=300&text=Food"} 
-                        alt={product.name}
+                        src={banner.imageUrl || "/placeholder.svg?height=300&width=300&text=Banner"} 
+                        alt={banner.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          console.log("Lỗi tải hình ảnh (card):", product.name, product.image_url || product.imageUrl);
+                          console.log("Lỗi tải hình ảnh banner (card):", banner.title, banner.imageUrl);
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
-                          target.src = "/placeholder.svg?height=300&width=300&text=Food";
+                          target.src = "/placeholder.svg?height=300&width=300&text=Banner";
                         }}
                       />
                     </Card>
@@ -244,43 +216,4 @@ export default function ProductHeroSlider({ className }: ProductHeroSliderProps)
       </div>
     </div>
   )
-}
-
-// Dữ liệu mẫu sản phẩm nổi bật khi API không trả về dữ liệu
-const sampleProducts = [
-  {
-    id: 1,
-    name: "Burger Bò Phô Mai",
-    description: "Burger thịt bò Úc 100% với phô mai cheddar béo ngậy, rau xà lách tươi và sốt đặc biệt của nhà hàng",
-    price: 89000,
-    imageUrl: "/placeholder.svg?height=500&width=500&text=Burger"
-  },
-  {
-    id: 2,
-    name: "Burger Gà Giòn",
-    description: "Burger với miếng gà rán giòn rụm, rau xà lách tươi, cà chua và sốt mayonnaise",
-    price: 69000,
-    imageUrl: "/placeholder.svg?height=500&width=500&text=Chicken+Burger"
-  },
-  {
-    id: 3,
-    name: "Pizza Hải Sản",
-    description: "Pizza với hải sản tươi ngon như tôm, mực, cua gạch và phô mai mozzarella",
-    price: 159000,
-    imageUrl: "/placeholder.svg?height=500&width=500&text=Pizza"
-  },
-  {
-    id: 5,
-    name: "Gà Rán Giòn (3 Miếng)",
-    description: "Gà rán giòn với lớp bột đặc biệt, chiên vàng giòn rụm",
-    price: 129000,
-    imageUrl: "/placeholder.svg?height=500&width=500&text=Fried+Chicken"
-  },
-  {
-    id: 10,
-    name: "Combo Burger Bò + Khoai Tây + Nước",
-    description: "Combo tiết kiệm với burger bò phô mai, khoai tây chiên và coca cola",
-    price: 149000,
-    imageUrl: "/placeholder.svg?height=500&width=500&text=Combo"
-  }
-] 
+} 

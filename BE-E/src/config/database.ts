@@ -14,6 +14,7 @@ import { Payment } from "../models/Payment";
 import { UserBehavior } from "../models/UserBehavior";
 import { ProductLike } from "../models/ProductLike";
 import { Cart } from "../models/Cart";
+import { Banner } from "../models/Banner";
 import path from "path";
 import * as dotenv from "dotenv";
 
@@ -43,7 +44,8 @@ export const AppDataSource = new DataSource({
     ChatLog,
     UserBehavior,
     ProductLike,
-    Cart
+    Cart,
+    Banner
   ],
   migrations: [path.join(__dirname, "../database/migrations/*.{ts,js}")],
   synchronize: process.env.NODE_ENV === "development",

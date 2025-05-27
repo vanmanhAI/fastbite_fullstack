@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
 import { getProducts } from '@/services/productService'
 import LoadingSpinner from '@/components/loading-spinner'
+import bannerService, { Banner } from '@/services/bannerService'
 
 interface ProductBannerProps {
   className?: string
@@ -14,26 +15,35 @@ interface ProductBannerProps {
 
 export default function ProductBanner({ className }: ProductBannerProps) {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([])
+  const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchFeaturedProducts() {
+    async function fetchData() {
       try {
         setLoading(true)
-        // Lấy 5 sản phẩm nổi bật từ database
-        const productsResponse = await getProducts(1, 5, undefined, undefined, true)
-        console.log("Sản phẩm nổi bật:", productsResponse?.data?.length || 0, "sản phẩm")
         
-        // Đảm bảo có dữ liệu
-        if (productsResponse?.data && productsResponse.data.length > 0) {
-          setFeaturedProducts(productsResponse.data)
-        } else {
-          // Sử dụng dữ liệu mẫu nếu không có dữ liệu từ API
-          setFeaturedProducts(sampleProducts)
-          console.log("Sử dụng dữ liệu mẫu cho banner sản phẩm")
+        // Tải banner từ API
+        const bannerData = await bannerService.getProductBanners();
+        setBanners(bannerData);
+        
+        // Nếu không có banner, sử dụng sản phẩm nổi bật
+        if (bannerData.length === 0) {
+          // Lấy 5 sản phẩm nổi bật từ database
+          const productsResponse = await getProducts(1, 5, undefined, undefined, true)
+          console.log("Sản phẩm nổi bật:", productsResponse?.data?.length || 0, "sản phẩm")
+          
+          // Đảm bảo có dữ liệu
+          if (productsResponse?.data && productsResponse.data.length > 0) {
+            setFeaturedProducts(productsResponse.data)
+          } else {
+            // Sử dụng dữ liệu mẫu nếu không có dữ liệu từ API
+            setFeaturedProducts(sampleProducts)
+            console.log("Sử dụng dữ liệu mẫu cho banner sản phẩm")
+          }
         }
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu sản phẩm:", error)
+        console.error("Lỗi khi tải dữ liệu banner:", error)
         // Sử dụng dữ liệu mẫu trong trường hợp lỗi
         setFeaturedProducts(sampleProducts)
         console.log("Sử dụng dữ liệu mẫu cho banner sản phẩm do lỗi")
@@ -42,13 +52,58 @@ export default function ProductBanner({ className }: ProductBannerProps) {
       }
     }
     
-    fetchFeaturedProducts()
+    fetchData()
   }, [])
 
   if (loading) {
     return <div className="flex justify-center p-12"><LoadingSpinner /></div>
   }
 
+  // Nếu có banner từ API, hiển thị banner
+  if (banners.length > 0) {
+    return (
+      <section className={`py-12 ${className}`}>
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8 text-center">Món Ăn Đặc Sắc</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {banners.map((banner) => (
+              <Card key={banner.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <Link href={banner.linkUrl || "#"}>
+                  <div className="relative aspect-video">
+                    <img
+                      src={banner.imageUrl || "/placeholder.svg?height=300&width=300&text=Banner"}
+                      alt={banner.title}
+                      className="object-cover w-full h-full"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "/placeholder.svg?height=300&width=300&text=Banner";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4" style={{ 
+                    backgroundColor: banner.backgroundColor || 'inherit',
+                    color: banner.textColor || 'inherit'
+                  }}>
+                    <h4 className="font-bold mb-2">{banner.title}</h4>
+                    {banner.description && <p className="text-sm mb-4">{banner.description}</p>}
+                    {banner.buttonText && (
+                      <Button size="sm" variant="default">
+                        {banner.buttonText}
+                      </Button>
+                    )}
+                  </div>
+                </Link>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Nếu không có banner từ API, hiển thị sản phẩm nổi bật
   if (featuredProducts.length === 0) {
     return null
   }
@@ -92,7 +147,7 @@ export default function ProductBanner({ className }: ProductBannerProps) {
             <div className="md:w-1/2">
               <div className="relative aspect-square max-w-[500px] mx-auto">
                 <img
-                  src={displayProducts[0].image_url || "/placeholder.svg?height=500&width=500&text=Food+Product"}
+                  src={displayProducts[0].imageUrl || "/placeholder.svg?height=500&width=500&text=Food+Product"}
                   alt={displayProducts[0].name}
                   className="rounded-xl object-cover w-full h-full shadow-lg"
                   onError={(e) => {
@@ -115,7 +170,7 @@ export default function ProductBanner({ className }: ProductBannerProps) {
                 <Link href={`/products/${product.id}`}>
                   <div className="relative aspect-square">
                     <img
-                      src={product.image_url || "/placeholder.svg?height=300&width=300&text=Food"}
+                      src={product.imageUrl || "/placeholder.svg?height=300&width=300&text=Food"}
                       alt={product.name}
                       className="object-cover w-full h-full"
                       onError={(e) => {
@@ -151,34 +206,34 @@ const sampleProducts = [
     name: "Burger Bò Phô Mai",
     description: "Burger thịt bò Úc 100% với phô mai cheddar béo ngậy, rau xà lách tươi và sốt đặc biệt của nhà hàng",
     price: 89000,
-    image_url: "/placeholder.svg?height=500&width=500&text=Burger"
+    imageUrl: "/placeholder.svg?height=500&width=500&text=Burger"
   },
   {
     id: 2,
     name: "Burger Gà Giòn",
     description: "Burger với miếng gà rán giòn rụm, rau xà lách tươi, cà chua và sốt mayonnaise",
     price: 69000,
-    image_url: "/placeholder.svg?height=300&width=300&text=Chicken+Burger"
+    imageUrl: "/placeholder.svg?height=300&width=300&text=Chicken+Burger"
   },
   {
     id: 3,
     name: "Pizza Hải Sản",
     description: "Pizza với hải sản tươi ngon như tôm, mực, cua gạch và phô mai mozzarella",
     price: 159000,
-    image_url: "/placeholder.svg?height=300&width=300&text=Pizza"
+    imageUrl: "/placeholder.svg?height=300&width=300&text=Pizza"
   },
   {
     id: 4,
     name: "Pizza Rau Củ",
     description: "Pizza chay với nhiều loại rau củ như ớt chuông, nấm, oliu, hành tây và phô mai mozzarella",
     price: 139000,
-    image_url: "/placeholder.svg?height=300&width=300&text=Veggie+Pizza"
+    imageUrl: "/placeholder.svg?height=300&width=300&text=Veggie+Pizza"
   },
   {
     id: 5,
     name: "Gà Rán (3 Miếng)",
     description: "Gà rán giòn với lớp bột đặc biệt, chiên vàng giòn rụm",
     price: 129000,
-    image_url: "/placeholder.svg?height=300&width=300&text=Fried+Chicken"
+    imageUrl: "/placeholder.svg?height=300&width=300&text=Fried+Chicken"
   }
 ] 

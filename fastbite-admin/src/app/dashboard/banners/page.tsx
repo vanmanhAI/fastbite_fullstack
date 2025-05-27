@@ -2,21 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getProducts, deleteProduct, deleteMultipleProducts } from "@/services/productService";
-import { Product } from "@/lib/types";
+import { getBanners, deleteBanner, deleteMultipleBanners } from "@/services/bannerService";
+import { Banner } from "@/lib/types";
 import { useToast } from "@/components/ui/toast";
 import { Loading, TableLoading } from "@/components/ui/loading";
 import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, X, AlertTriangle } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
 
-export default function ProductsPage() {
+export default function BannersPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
 
@@ -28,138 +27,142 @@ export default function ProductsPage() {
   });
   
   // Thêm state cho chức năng chọn nhiều và modal xác nhận xóa
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [selectedBanners, setSelectedBanners] = useState<number[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [bannerToDelete, setBannerToDelete] = useState<number | null>(null);
   const [deletingMultiple, setDeletingMultiple] = useState(false);
 
-  const fetchProducts = async () => {
+  const fetchBanners = async () => {
     setLoading(true);
     try {
       const params = {
         search: searchTerm || undefined,
-        status: filter !== "all" ? filter : undefined,
+        active: filter !== "all" ? filter : undefined,
         page: pagination.page,
         limit: pagination.limit,
       };
 
-      const result = await getProducts(params);
-      setProducts(result.products);
+      const result = await getBanners(params);
+      setBanners(result.banners);
       if (result.pagination) {
         setPagination(result.pagination);
       }
     } catch (error: any) {
-      console.error("Error fetching products:", error);
-      showToast("error", error.message || "Không thể tải danh sách sản phẩm");
+      console.error("Error fetching banners:", error);
+      showToast("error", error.message || "Không thể tải danh sách banner");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchBanners();
   }, [pagination.page, pagination.limit]);
 
-  // Reset selected products khi load lại dữ liệu
+  // Reset selected banners khi load lại dữ liệu
   useEffect(() => {
-    setSelectedProducts([]);
-  }, [products]);
+    setSelectedBanners([]);
+  }, [banners]);
 
   // Xử lý khi thay đổi filter hoặc search
   const handleFilterChange = () => {
     // Reset về trang 1 khi thay đổi bộ lọc
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchProducts();
+    fetchBanners();
   };
 
-  // Xử lý chọn tất cả sản phẩm
+  // Xử lý chọn tất cả banner
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(filteredProducts.map(product => product.id));
+      setSelectedBanners(filteredBanners.map(banner => banner.id));
     } else {
-      setSelectedProducts([]);
+      setSelectedBanners([]);
     }
   };
 
-  // Xử lý chọn một sản phẩm
-  const handleSelectProduct = (id: number, checked: boolean) => {
+  // Xử lý chọn một banner
+  const handleSelectBanner = (id: number, checked: boolean) => {
     if (checked) {
-      setSelectedProducts(prev => [...prev, id]);
+      setSelectedBanners(prev => [...prev, id]);
     } else {
-      setSelectedProducts(prev => prev.filter(productId => productId !== id));
+      setSelectedBanners(prev => prev.filter(bannerId => bannerId !== id));
     }
   };
 
   // Xử lý mở modal xác nhận xóa
   const confirmDelete = (id: number) => {
-    setProductToDelete(id);
+    setBannerToDelete(id);
     setShowDeleteModal(true);
   };
 
-  // Xử lý xóa sản phẩm
-  const handleDeleteProduct = async () => {
-    if (!productToDelete) return;
+  // Xử lý xóa banner
+  const handleDeleteBanner = async () => {
+    if (!bannerToDelete) return;
     
-    setDeleting(productToDelete);
+    setDeleting(bannerToDelete);
     try {
-      const success = await deleteProduct(productToDelete);
+      const success = await deleteBanner(bannerToDelete);
       if (success) {
-        showToast("success", "Đã xóa sản phẩm thành công");
-        // Xóa sản phẩm khỏi danh sách hiện tại trước khi gọi API để tránh hiển thị lại
-        setProducts(prevProducts => prevProducts.filter(p => p.id !== productToDelete));
+        showToast("success", "Đã xóa banner thành công");
+        // Xóa banner khỏi danh sách hiện tại trước khi gọi API để tránh hiển thị lại
+        setBanners(prevBanners => prevBanners.filter(b => b.id !== bannerToDelete));
         // Sau đó mới cập nhật từ API
-        fetchProducts();
+        fetchBanners();
       } else {
-        showToast("error", "Không thể xóa sản phẩm");
+        showToast("error", "Không thể xóa banner");
       }
     } catch (error) {
-      console.error("Error deleting product:", error);
-      showToast("error", "Đã xảy ra lỗi khi xóa sản phẩm");
+      console.error("Error deleting banner:", error);
+      showToast("error", "Đã xảy ra lỗi khi xóa banner");
     } finally {
       setDeleting(null);
       setShowDeleteModal(false);
-      setProductToDelete(null);
+      setBannerToDelete(null);
     }
   };
 
-  // Xử lý xóa nhiều sản phẩm
-  const handleDeleteMultipleProducts = async () => {
-    if (selectedProducts.length === 0) return;
+  // Xử lý xóa nhiều banner
+  const handleDeleteMultipleBanners = async () => {
+    if (selectedBanners.length === 0) return;
     
     setDeletingMultiple(true);
     try {
-      const result = await deleteMultipleProducts(selectedProducts);
+      const result = await deleteMultipleBanners(selectedBanners);
       
       if (result.success > 0) {
-        showToast("success", `Đã xóa ${result.success} sản phẩm thành công${result.failed > 0 ? `, ${result.failed} sản phẩm thất bại` : ''}`);
-        // Xóa các sản phẩm đã xóa thành công khỏi danh sách hiện tại
-        setProducts(prevProducts => prevProducts.filter(p => !selectedProducts.includes(p.id)));
+        showToast("success", `Đã xóa ${result.success} banner thành công${result.failed > 0 ? `, ${result.failed} banner thất bại` : ''}`);
+        // Xóa các banner đã xóa thành công khỏi danh sách hiện tại
+        setBanners(prevBanners => prevBanners.filter(b => !selectedBanners.includes(b.id)));
         // Sau đó cập nhật lại danh sách từ API
-        fetchProducts();
+        fetchBanners();
       } else {
-        showToast("error", "Không thể xóa các sản phẩm đã chọn");
+        showToast("error", "Không thể xóa các banner đã chọn");
       }
     } catch (error) {
-      console.error("Error deleting multiple products:", error);
-      showToast("error", "Đã xảy ra lỗi khi xóa sản phẩm");
+      console.error("Error deleting multiple banners:", error);
+      showToast("error", "Đã xảy ra lỗi khi xóa banner");
     } finally {
       setDeletingMultiple(false);
       setShowDeleteModal(false);
-      setSelectedProducts([]);
+      setSelectedBanners([]);
     }
   };
 
+  // Định dạng ngày
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
 
-
-  // Sử dụng hàm formatPrice từ utils.ts
-
-  // Lọc sản phẩm từ danh sách đã fetch 
-  const filteredProducts = products.filter((product) => {
-    if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+  // Lọc banner từ danh sách đã fetch 
+  const filteredBanners = banners.filter((banner) => {
+    if (searchTerm && !banner.title.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    if (filter !== "all") {
-      return product.status === filter;
+    if (filter === "true") {
+      return banner.isActive === true;
+    }
+    if (filter === "false") {
+      return banner.isActive === false;
     }
     return true;
   });
@@ -177,28 +180,51 @@ export default function ProductsPage() {
     }
   };
 
+  // Hiển thị vị trí banner
+  const getBannerPosition = (position: string) => {
+    const positions: {[key: string]: string} = {
+      'home_top': 'Đầu trang chủ',
+      'home_middle': 'Giữa trang chủ',
+      'home_bottom': 'Cuối trang chủ',
+      'category_page': 'Trang danh mục',
+      'product_page': 'Trang sản phẩm'
+    };
+    return positions[position] || position;
+  };
+
+  // Hiển thị loại banner
+  const getBannerType = (type: string) => {
+    const types: {[key: string]: string} = {
+      'hero': 'Hero',
+      'promotion': 'Khuyến mãi',
+      'product': 'Sản phẩm',
+      'category': 'Danh mục'
+    };
+    return types[type] || type;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sản phẩm</h1>
-          <p className="text-sm text-gray-500 mt-1">Quản lý danh sách sản phẩm</p>
+          <h1 className="text-2xl font-bold text-gray-900">Banner</h1>
+          <p className="text-sm text-gray-500 mt-1">Quản lý danh sách banner hiển thị trên website</p>
         </div>
         <div className="flex gap-2">
-          {selectedProducts.length > 0 && (
+          {selectedBanners.length > 0 && (
             <button
               onClick={() => setShowDeleteModal(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Xóa ({selectedProducts.length})
+              Xóa ({selectedBanners.length})
             </button>
           )}
           <Link
-            href="/dashboard/products/add"
+            href="/dashboard/banners/add"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
-            Thêm sản phẩm
+            Thêm banner
           </Link>
         </div>
       </div>
@@ -211,7 +237,7 @@ export default function ProductsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleFilterChange()}
-              placeholder="Tìm kiếm sản phẩm..."
+              placeholder="Tìm kiếm banner..."
               className="w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm"
             />
           </div>
@@ -224,9 +250,9 @@ export default function ProductsPage() {
               }}
               className="block rounded-md border border-gray-300 py-2 pl-3 pr-10 text-base focus:border-red-500 focus:outline-none focus:ring-red-500 sm:text-sm"
             >
-              <option value="all">Tất cả sản phẩm</option>
-              <option value="active">Đang bán</option>
-              <option value="unavailable">Hết hàng</option>
+              <option value="all">Tất cả banner</option>
+              <option value="true">Đang hiển thị</option>
+              <option value="false">Đã ẩn</option>
             </select>
             <button
               onClick={handleFilterChange}
@@ -247,8 +273,8 @@ export default function ProductsPage() {
                     <Checkbox 
                       id="select-all" 
                       checked={
-                        filteredProducts.length > 0 && 
-                        selectedProducts.length === filteredProducts.length
+                        filteredBanners.length > 0 && 
+                        selectedBanners.length === filteredBanners.length
                       }
                       onCheckedChange={(checked: boolean) => handleSelectAll(checked)}
                       className="rounded border-gray-300"
@@ -256,16 +282,16 @@ export default function ProductsPage() {
                   </div>
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sản phẩm
+                  Banner
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Danh mục
+                  Loại
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Giá
+                  Vị trí
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kho hàng
+                  Thời gian hiển thị
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Trạng thái
@@ -276,15 +302,15 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
+              {filteredBanners.map((banner) => (
+                <tr key={banner.id} className="hover:bg-gray-50">
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Checkbox 
-                        id={`select-${product.id}`} 
-                        checked={selectedProducts.includes(product.id)}
+                        id={`select-${banner.id}`} 
+                        checked={selectedBanners.includes(banner.id)}
                         onCheckedChange={(checked: boolean) => 
-                          handleSelectProduct(product.id, checked)
+                          handleSelectBanner(banner.id, checked)
                         }
                         className="rounded border-gray-300"
                       />
@@ -292,11 +318,11 @@ export default function ProductsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-md bg-gray-200 overflow-hidden">
-                        {product.imageUrl ? (
+                      <div className="h-10 w-16 flex-shrink-0 rounded-md bg-gray-200 overflow-hidden">
+                        {banner.imageUrl ? (
                           <img
-                            src={product.imageUrl}
-                            alt={product.name}
+                            src={banner.imageUrl}
+                            alt={banner.title}
                             className="h-full w-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -311,42 +337,45 @@ export default function ProductsPage() {
                         )}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">ID: {product.id}</div>
+                        <div className="text-sm font-medium text-gray-900">{banner.title}</div>
+                        <div className="text-sm text-gray-500">ID: {banner.id}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.category}
+                    {getBannerType(banner.type)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatPrice(product.price)}
+                    {getBannerPosition(banner.position)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {product.stock} sản phẩm
+                    {banner.startDate && banner.endDate ? (
+                      <span>{formatDate(banner.startDate)} - {formatDate(banner.endDate)}</span>
+                    ) : (
+                      <span>Không giới hạn</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      (product.stock <= 0) ? "bg-red-100 text-red-800" : 
-                      "bg-green-100 text-green-800"
+                      banner.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                     }`}>
-                      {(product.stock <= 0) ? "Hết hàng" : "Đang bán"}
+                      {banner.isActive ? "Đang hiển thị" : "Đã ẩn"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex space-x-3 items-center">
                       <Link 
-                        href={`/dashboard/products/edit/${product.id}`}
+                        href={`/dashboard/banners/edit/${banner.id}`}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         Sửa
                       </Link>
                       <button 
-                        onClick={() => confirmDelete(product.id)}
-                        disabled={deleting === product.id}
+                        onClick={() => confirmDelete(banner.id)}
+                        disabled={deleting === banner.id}
                         className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {deleting === product.id ? (
+                        {deleting === banner.id ? (
                           <span className="flex items-center">
                             <Loading size="small" color="primary" />
                             <span className="ml-1">Đang xóa...</span>
@@ -355,16 +384,15 @@ export default function ProductsPage() {
                           "Xóa"
                         )}
                       </button>
-
                     </div>
                   </td>
                 </tr>
               ))}
               
-              {filteredProducts?.length === 0 && !loading && (
+              {filteredBanners?.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-500">
-                    Không tìm thấy sản phẩm nào
+                    Không tìm thấy banner nào
                   </td>
                 </tr>
               )}
@@ -374,9 +402,9 @@ export default function ProductsPage() {
         
         <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-700 mb-4 sm:mb-0">
-            Hiển thị <span className="font-medium">{filteredProducts.length}</span>
+            Hiển thị <span className="font-medium">{filteredBanners.length}</span>
             {pagination && (
-              <> / <span className="font-medium">{pagination.total}</span> sản phẩm</>
+              <> / <span className="font-medium">{pagination.total}</span> banner</>
             )}
           </div>
           <div className="flex justify-center space-x-2">
@@ -418,30 +446,30 @@ export default function ProductsPage() {
             </div>
             
             <div className="px-6 py-4">
-              {selectedProducts.length > 0 ? (
-                <p className="text-gray-700">Bạn có chắc chắn muốn xóa {selectedProducts.length} sản phẩm đã chọn?</p>
+              {selectedBanners.length > 0 ? (
+                <p className="text-gray-700">Bạn có chắc chắn muốn xóa {selectedBanners.length} banner đã chọn?</p>
               ) : (
-                <p className="text-gray-700">Bạn có chắc chắn muốn xóa sản phẩm này?</p>
+                <p className="text-gray-700">Bạn có chắc chắn muốn xóa banner này?</p>
               )}
               <p className="text-gray-500 text-sm mt-2">Hành động này không thể hoàn tác.</p>
             </div>
             
             <div className="px-6 py-4 border-t border-gray-200 flex flex-row-reverse gap-2">
-              {selectedProducts.length > 0 ? (
+              {selectedBanners.length > 0 ? (
                 <button
-                  onClick={handleDeleteMultipleProducts}
+                  onClick={handleDeleteMultipleBanners}
                   disabled={deletingMultiple}
                   className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-                  {deletingMultiple ? 'Đang xóa...' : 'Xóa sản phẩm'}
+                  {deletingMultiple ? 'Đang xóa...' : 'Xóa banner'}
                 </button>
               ) : (
                 <button
-                  onClick={handleDeleteProduct}
+                  onClick={handleDeleteBanner}
                   disabled={deleting !== null}
                   className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-                  {deleting !== null ? 'Đang xóa...' : 'Xóa sản phẩm'}
+                  {deleting !== null ? 'Đang xóa...' : 'Xóa banner'}
                 </button>
               )}
               <button

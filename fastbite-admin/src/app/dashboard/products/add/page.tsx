@@ -21,7 +21,11 @@ export default function AddProductPage() {
     categoryId: "",
     price: "",
     stock: "",
-    status: "active"
+    status: "active",
+    isVegetarian: false,
+    isFeatured: false,
+    calories: "",
+    tags: ""
   });
 
   // Fetch categories on component mount
@@ -59,8 +63,16 @@ export default function AddProductPage() {
       reader.readAsDataURL(file);
     }
   };
+  
+  const handleCheckboxChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: checked
+    }));
+  };
 
-  const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -87,6 +99,16 @@ export default function AddProductPage() {
     productFormData.append('stock', formData.stock);
     productFormData.append('status', formData.status);
     productFormData.append('image', imageFile);
+    productFormData.append('isVegetarian', formData.isVegetarian.toString());
+    productFormData.append('isFeatured', formData.isFeatured.toString());
+    
+    if (formData.calories) {
+      productFormData.append('calories', formData.calories);
+    }
+    
+    if (formData.tags) {
+      productFormData.append('tags', formData.tags);
+    }
 
     setLoading(true);
 
@@ -97,7 +119,8 @@ export default function AddProductPage() {
         router.push("/dashboard/products");
       }
     } catch (error: any) {
-      showToast("error", error.response?.data?.message || "Đã xảy ra lỗi khi thêm sản phẩm");
+      console.error("Error creating product:", error);
+      showToast("error", error.message || "Đã xảy ra lỗi khi thêm sản phẩm");
     } finally {
       setLoading(false);
     }
@@ -184,6 +207,23 @@ export default function AddProductPage() {
                 />
               </div>
               
+
+              
+              <div>
+                <label htmlFor="calories" className="block text-sm font-medium text-gray-700 mb-1">
+                  Calo
+                </label>
+                <input
+                  type="number"
+                  id="calories"
+                  name="calories"
+                  value={formData.calories}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                   Trạng thái
@@ -196,8 +236,38 @@ export default function AddProductPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="active">Đang bán</option>
-                  <option value="unavailable">Ngừng bán</option>
+                  <option value="unavailable">Hết hàng</option>
                 </select>
+              </div>
+              
+              <div className="flex space-x-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isVegetarian"
+                    name="isVegetarian"
+                    checked={formData.isVegetarian}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isVegetarian" className="ml-2 block text-sm text-gray-700">
+                    Món chay
+                  </label>
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isFeatured"
+                    name="isFeatured"
+                    checked={formData.isFeatured}
+                    onChange={handleCheckboxChange}
+                    className="h-4 w-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                    Sản phẩm nổi bật
+                  </label>
+                </div>
               </div>
             </div>
             
@@ -211,9 +281,24 @@ export default function AddProductPage() {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  rows={5}
+                  rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 ></textarea>
+              </div>
+              
+              <div>
+                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (phân cách bởi dấu phẩy)
+                </label>
+                <input
+                  type="text"
+                  id="tags"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="vd: cay, ngọt, best-seller"
+                />
               </div>
               
               <div>

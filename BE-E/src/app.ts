@@ -23,6 +23,7 @@ import recommendationRoutes from "./routes/recommendationRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import cartRoutes from "./routes/cartRoutes";
 import chatbotRoutes from "./routes/chatbotRoutes";
+import bannerRoutes from "./routes/bannerRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -87,6 +88,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/banners", bannerRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 

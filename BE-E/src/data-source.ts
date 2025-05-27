@@ -14,6 +14,7 @@ import { InventoryTransaction } from "./models/InventoryTransaction";
 import { UserBehavior } from "./models/UserBehavior";
 import { Cart } from "./models/Cart";
 import { ProductLike } from "./models/ProductLike";
+import { Banner } from "./models/Banner";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -42,7 +43,8 @@ export const AppDataSource = new DataSource({
     InventoryTransaction,
     UserBehavior,
     Cart,
-    ProductLike
+    ProductLike,
+    Banner
   ],
   subscribers: [],
   migrations: [],

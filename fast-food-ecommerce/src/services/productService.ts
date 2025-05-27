@@ -55,7 +55,21 @@ export const getProducts = async (
     throw new Error(error.message || 'Không thể lấy danh sách sản phẩm');
   }
   
-  return response.json();
+  const result = await response.json();
+  
+  // Xử lý và chuẩn hóa dữ liệu sản phẩm
+  if (result.data && Array.isArray(result.data)) {
+    // Cập nhật trạng thái của sản phẩm dựa trên số lượng tồn kho
+    result.data = result.data.map((product: Product) => {
+      // Nếu stock = 0, đánh dấu là không hoạt động (hết hàng)
+      if (product.stock <= 0) {
+        product.isActive = false;
+      }
+      return product;
+    });
+  }
+  
+  return result;
 };
 
 // Lấy thông tin chi tiết sản phẩm
@@ -68,7 +82,18 @@ export const getProductById = async (id: number): Promise<Product> => {
   }
   
   const data = await response.json();
-  return data.product;
+  // API có thể trả về dữ liệu trong trường product hoặc trường data
+  const product = data.product || data.data;
+  
+  // Kiểm tra và xử lý trạng thái sản phẩm dựa trên tồn kho
+  if (product) {
+    // Sản phẩm không còn hàng sẽ được đánh dấu là không hoạt động
+    if (product.stock <= 0) {
+      product.isActive = false;
+    }
+  }
+  
+  return product;
 };
 
 export async function getFeaturedProducts() {

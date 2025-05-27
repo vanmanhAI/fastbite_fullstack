@@ -23,7 +23,11 @@ export default function EditProductPage() {
     stock: "",
     status: "active",
     image: null as File | null,
-    imageUrl: ""
+    imageUrl: "",
+    isVegetarian: false,
+    isFeatured: false,
+    calories: "",
+    tags: ""
   });
 
   const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
@@ -47,9 +51,13 @@ export default function EditProductPage() {
             categoryId: product.categoryId?.toString() || "",
             price: product.price.toString(),
             stock: product.stock.toString(),
-            status: product.status,
+            status: product.status || (product.isActive ? "active" : "unavailable"),
             image: null,
-            imageUrl: product.imageUrl || ""
+            imageUrl: product.imageUrl || "",
+            isVegetarian: product.isVegetarian || false,
+            isFeatured: product.isFeatured || false,
+            calories: product.calories?.toString() || "",
+            tags: product.tags || ""
           });
 
           if (product.imageUrl) {
@@ -63,9 +71,9 @@ export default function EditProductPage() {
         if (categoriesData) {
           setCategories(categoriesData);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data:", error);
-        showToast("error", "Đã xảy ra lỗi khi tải dữ liệu");
+        showToast("error", error.message || "Đã xảy ra lỗi khi tải dữ liệu");
       } finally {
         setLoading(false);
       }
@@ -74,7 +82,8 @@ export default function EditProductPage() {
     if (productId) {
       fetchData();
     }
-  }, [productId, router, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -94,8 +103,13 @@ export default function EditProductPage() {
       reader.readAsDataURL(file);
     }
   };
+  
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: checked }));
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.price) {
@@ -113,22 +127,30 @@ export default function EditProductPage() {
       productData.append("price", formData.price);
       productData.append("stock", formData.stock);
       productData.append("status", formData.status);
+      productData.append("isVegetarian", formData.isVegetarian.toString());
+      productData.append("isFeatured", formData.isFeatured.toString());
+      
+      if (formData.calories) {
+        productData.append("calories", formData.calories);
+      }
+      
+      if (formData.tags) {
+        productData.append("tags", formData.tags);
+      }
       
       if (formData.image) {
         productData.append("image", formData.image);
       }
 
-      const success = await updateProduct(productId, productData);
+      const result = await updateProduct(productId, productData);
       
-      if (success) {
+      if (result) {
         showToast("success", "Cập nhật sản phẩm thành công");
         router.push("/dashboard/products");
-      } else {
-        showToast("error", "Không thể cập nhật sản phẩm");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating product:", error);
-      showToast("error", "Đã xảy ra lỗi khi cập nhật sản phẩm");
+      showToast("error", error.message || "Đã xảy ra lỗi khi cập nhật sản phẩm");
     } finally {
       setSubmitting(false);
     }
@@ -278,6 +300,74 @@ export default function EditProductPage() {
                     <option value="active">Đang bán</option>
                     <option value="unavailable">Hết hàng</option>
                   </select>
+                </div>
+              </div>
+              
+
+
+              <div className="sm:col-span-2">
+                <label htmlFor="calories" className="block text-sm font-medium text-gray-700">
+                  Calo
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="number"
+                    name="calories"
+                    id="calories"
+                    min="0"
+                    value={formData.calories}
+                    onChange={handleChange}
+                    className="shadow-sm focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              
+              <div className="sm:col-span-6">
+                <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+                  Tags (phân cách bởi dấu phẩy)
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="text"
+                    name="tags"
+                    id="tags"
+                    value={formData.tags}
+                    onChange={handleChange}
+                    placeholder="vd: cay, ngọt, best-seller"
+                    className="shadow-sm focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              
+              <div className="sm:col-span-6">
+                <div className="flex items-start mt-2 space-x-6">
+                  <div className="flex items-center">
+                    <input
+                      id="isVegetarian"
+                      name="isVegetarian"
+                      type="checkbox"
+                      checked={formData.isVegetarian}
+                      onChange={handleCheckboxChange}
+                      className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isVegetarian" className="ml-2 block text-sm text-gray-700">
+                      Món chay
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <input
+                      id="isFeatured"
+                      name="isFeatured"
+                      type="checkbox"
+                      checked={formData.isFeatured}
+                      onChange={handleCheckboxChange}
+                      className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-700">
+                      Sản phẩm nổi bật
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
