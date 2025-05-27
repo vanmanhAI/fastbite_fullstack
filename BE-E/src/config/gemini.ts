@@ -46,7 +46,6 @@ const chatSystemPrompt = process.env.CHATBOT_SYSTEM_PROMPT ||
 
 const maxChatHistory = parseInt(process.env.CHATBOT_MAX_HISTORY || '20');
 
-// Tạo và xuất model
 const geminiProModel = genAI.getGenerativeModel({
   model: 'gemini-pro',
   safetySettings,

@@ -273,3 +273,33 @@
 2025-05-21 23:49:04 [INFO]:   3. sprite - Điểm: 11.24 - Lý do: Được đề xuất vì đây là sản phẩm bạn đã tương tác trước đây và tương tự với sản phẩm bạn thích 
 2025-05-21 23:49:04 [INFO]:   4. burger bò phô mai - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
 2025-05-21 23:49:04 [INFO]:   5. sdsds - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:39:07 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 2 sản phẩm 
+2025-05-22 00:39:07 [INFO]:   1. Cheeseburger - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:39:07 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:39:21 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 2 sản phẩm 
+2025-05-22 00:39:21 [INFO]:   1. Cheeseburger - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:39:21 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:40:23 [INFO]: [ENHANCED RECOMMENDATION] User 24 - Đề xuất 2 sản phẩm 
+2025-05-22 00:40:23 [INFO]:   1. Cheeseburger - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:40:23 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:42:50 [INFO]: [ENHANCED RECOMMENDATION] User 25 - Đề xuất 1 sản phẩm 
+2025-05-22 00:42:50 [INFO]:   1. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:43:44 [INFO]: [ENHANCED RECOMMENDATION] User 25 - Đề xuất 2 sản phẩm 
+2025-05-22 00:43:44 [INFO]:   1. CHEESE BURGER - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:43:44 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:54:36 [INFO]: [ENHANCED RECOMMENDATION] User 25 - Đề xuất 2 sản phẩm 
+2025-05-22 00:54:36 [INFO]:   1. CHEESE BURGER - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:54:36 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:54:45 [INFO]: [ENHANCED RECOMMENDATION] User 25 - Đề xuất 2 sản phẩm 
+2025-05-22 00:54:45 [INFO]:   1. CHEESE BURGER - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 00:54:45 [INFO]:   2. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 08:07:02 [INFO]: [RECOMMENDATION] User 26 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-22 09:08:46 [INFO]: [RECOMMENDATION] User 26 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-22 09:10:12 [INFO]: [RECOMMENDATION] User 26 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-22 09:12:57 [INFO]: [RECOMMENDATION] User 26 là người dùng mới, trả về sản phẩm phổ biến 
+2025-05-22 09:13:27 [INFO]: [ENHANCED RECOMMENDATION] User 26 - Đề xuất 1 sản phẩm 
+2025-05-22 09:13:27 [INFO]:   1. The Perfect Basic Burger Recipe - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 09:52:37 [INFO]: [ENHANCED RECOMMENDATION] User 28 - Đề xuất 2 sản phẩm 
+2025-05-22 09:52:37 [INFO]:   1. Nước Ngọt Coca Cola Giảm Đường Chai 1.5L - Điểm: 2.15 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 09:52:37 [INFO]:   2. Gà rán KFC - Điểm: 2.00 - Lý do: Được đề xuất vì đây là sản phẩm tương tự với sản phẩm bạn thích 
+2025-05-22 10:06:39 [INFO]: [ENHANCED RECOMMENDATION] User 30 - Đề xuất 0 sản phẩm 

@@ -120,45 +120,83 @@ export const classifyEnhancedUserIntent = async (message: string): Promise<UserI
       'tôi thích', 'tôi ưa thích', 'tôi hay', 'thích gì', 
       'biết tôi thích', 'sở thích', 'tôi thường', 'tôi hay dùng',
       'tôi hay mua', 'tôi hay ăn', 'tôi hay uống'
-    ]
+    ],
+    category_specific: {
+      drinks: ['nước uống', 'đồ uống', 'thức uống', 'nước gì'],
+      foods: ['đồ ăn', 'thức ăn', 'món ăn', 'đồ ăn gì']
+    }
   };
   
   // Log từ khóa tìm thấy trong mỗi loại
   for (const [intent, keywords] of Object.entries(intentKeywords)) {
-    const matchedKeywords = keywords.filter(kw => lowerMsg.includes(kw));
-    if (matchedKeywords.length > 0) {
-      console.log(`[ENHANCED_INTENT] Tìm thấy từ khóa "${intent}": ${matchedKeywords.join(', ')}`);
+    if (intent !== 'category_specific') {
+      const matchedKeywords = (keywords as string[]).filter(kw => lowerMsg.includes(kw));
+      if (matchedKeywords.length > 0) {
+        console.log(`[ENHANCED_INTENT] Tìm thấy từ khóa "${intent}": ${matchedKeywords.join(', ')}`);
+      }
     }
+  }
+  
+  // Phát hiện danh mục cụ thể (nước uống/đồ ăn)
+  let specificCategory = null;
+  if (containsAny(lowerMsg, intentKeywords.category_specific.drinks)) {
+    specificCategory = 'drink';
+    console.log("[ENHANCED_INTENT] Phát hiện danh mục: NƯỚC UỐNG");
+  } else if (containsAny(lowerMsg, intentKeywords.category_specific.foods)) {
+    specificCategory = 'food';
+    console.log("[ENHANCED_INTENT] Phát hiện danh mục: MÓN ĂN");
   }
   
   // Kiểm tra các cụm từ ưu tiên về sở thích người dùng
   if (containsAny(lowerMsg, intentKeywords.preference_query)) {
     // Nếu có từ khóa về sở thích, ưu tiên phân loại là recommendation
     console.log("[ENHANCED_INTENT] Phát hiện ý định thể hiện SỞ THÍCH, phân loại là recommendation");
+    
+    // Cải tiến: Bổ sung thông tin về danh mục cụ thể vào entities
+    const entities = extractEntities(lowerMsg);
+    if (specificCategory) {
+      entities.specificCategory = specificCategory;
+      console.log(`[ENHANCED_INTENT] Đính kèm thông tin danh mục cụ thể: ${specificCategory}`);
+    }
+    
     return {
       intent: 'recommendation',
-      confidence: 0.85,
-      entities: extractEntities(lowerMsg)
+      confidence: 0.9, // Tăng độ tin cậy khi có cả sở thích và danh mục
+      entities: entities
     };
   }
   
   // Ưu tiên kiểm tra cụm từ về đề xuất món ăn
   if (containsAny(lowerMsg, intentKeywords.food_recommendation)) {
     console.log("[ENHANCED_INTENT] Phát hiện ý định đề xuất MÓN ĂN, phân loại là food_recommendation");
+    
+    // Thêm thông tin về danh mục cụ thể
+    const entities = extractEntities(lowerMsg);
+    if (specificCategory) {
+      entities.specificCategory = specificCategory;
+    }
+    
     return {
       intent: 'food_recommendation',
       confidence: 0.88,
-      entities: extractEntities(lowerMsg)
+      entities: entities
     };
   }
   
   // Kiểm tra các từ đơn về đề xuất/gợi ý
   if (containsAny(lowerMsg, intentKeywords.recommendation)) {
     console.log("[ENHANCED_INTENT] Phát hiện ý định ĐỀ XUẤT/GỢI Ý, phân loại là recommendation");
+    
+    // Thêm thông tin về danh mục cụ thể
+    const entities = extractEntities(lowerMsg);
+    if (specificCategory) {
+      entities.specificCategory = specificCategory;
+    }
+    
     return {
       intent: 'recommendation',
       confidence: 0.82,
-      entities: extractEntities(lowerMsg)
+      entities: entities
     };
   }
   

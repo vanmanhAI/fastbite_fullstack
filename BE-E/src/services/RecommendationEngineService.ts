@@ -5,12 +5,14 @@ import { User } from "../models/User";
 import { Category } from "../models/Category";
 import { In } from "typeorm";
 import logger from "../config/logger";
+import { QueryUnderstandingService } from "../services/QueryUnderstandingService";
 
 export class RecommendationEngineService {
   private userBehaviorRepository = AppDataSource.getRepository(UserBehavior);
   private productRepository = AppDataSource.getRepository(Product);
   private userRepository = AppDataSource.getRepository(User);
   private categoryRepository = AppDataSource.getRepository(Category);
+  private queryUnderstandingService = new QueryUnderstandingService();
 
   // Trọng số động cho các loại hành vi
   private behaviorWeights = {
@@ -237,39 +239,54 @@ export class RecommendationEngineService {
   async getEnhancedPersonalizedRecommendations(
     userId: number,
     query = "",
-    limit = 10
+    limit = 10,
+    queryAnalysis?: any
   ): Promise<any> {
     try {
-      // Kiểm tra số lượng hành vi của người dùng
-      const userBehaviorCount = await this.userBehaviorRepository.count({
-        where: { userId }
+      const userBehaviors = await this.userBehaviorRepository.find({ 
+        where: { userId },
+        relations: ['product']
       });
-
-      // Nếu là người dùng mới, trả về sản phẩm phổ biến
-      if (userBehaviorCount === 0) {
-        logger.info(`[RECOMMENDATION] User ${userId} là người dùng mới, trả về sản phẩm phổ biến`);
+      
+      const isNewUser = userBehaviors.length === 0;
+      
+      console.log(`[DEBUG] Tạo đề xuất cho user ${userId}, query: "${query}"`);
+      if (queryAnalysis) {
+        console.log(`[DEBUG] Sử dụng kết quả phân tích từ Gemini: ${JSON.stringify(queryAnalysis)}`);
+      }
+      
+      if (queryAnalysis && (queryAnalysis.exactProductMatch || queryAnalysis.isDirectProductRequest)) {
+        console.log(`[DEBUG] Đang tìm sản phẩm cụ thể từ phân tích Gemini`);
         
-        const popularProducts = await this.productRepository.find({
-          where: { isActive: true },
-          order: { likeCount: "DESC", numReviews: "DESC" },
-          take: limit
-        });
-
-        return {
-          success: true,
-          products: popularProducts.map(p => ({
-            id: p.id,
-            name: p.name,
-            imageUrl: p.imageUrl || '/images/placeholder-food.jpg',
-            price: p.price,
-            description: p.description,
-            stock: p.stock,
-            reasoning: "Sản phẩm phổ biến được nhiều người ưa thích",
-            confidence: 0.6
-          })),
-          reasonings: ["Sản phẩm phổ biến được nhiều người ưa thích"],
-          isNewUser: true
-        };
+        const products = await this.queryUnderstandingService.findProductsFromAnalysis(queryAnalysis, limit);
+        
+        if (products.length > 0) {
+          return {
+            success: true,
+            products: products.map(product => ({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
+              description: product.description,
+              stock: product.stock,
+              confidence: queryAnalysis.confidence || 0.9,
+              reasoning: queryAnalysis.exactProductMatch 
+                ? `Đây chính là món ${product.name} mà bạn yêu cầu` 
+                : `Phù hợp với yêu cầu của bạn về ${queryAnalysis.primaryProductIntent || 'món ăn'}`
+            })),
+            reasonings: [`Yêu cầu trực tiếp về món ăn cụ thể`],
+            isNewUser: isNewUser
+          };
+        }
+      }
+      
+      // Phương pháp 2: Kết hợp hành vi người dùng với từ khóa từ phân tích Gemini
+      let extractedKeywords = query.toLowerCase().split(' ').filter(w => w.length > 2);
+      
+      if (queryAnalysis && queryAnalysis.extractedKeywords && queryAnalysis.extractedKeywords.length > 0) {
+        extractedKeywords = queryAnalysis.extractedKeywords;
+        console.log(`[DEBUG] Sử dụng từ khóa từ phân tích Gemini: ${extractedKeywords.join(', ')}`);
       }
 
       // 1. Phân tích hành vi người dùng và tạo user vector

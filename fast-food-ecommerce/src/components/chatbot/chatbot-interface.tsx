@@ -334,7 +334,6 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
     if (!input.trim() || loading) return
 
     try {
-      // Kiểm tra lại trạng thái đăng nhập trước khi gửi tin nhắn
       const token = localStorage.getItem(CHATBOT_CONFIG.tokenStorageKey);
       const loggedIn = !!token;
       if (loggedIn !== isLoggedIn) {
@@ -371,29 +370,24 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
       setInput("")
       setLoading(true)
 
-      // Phân tích ý định để xử lý đặc biệt nếu cần
       const intent = await detectIntent(input);
       
-      // Nếu là ý định đề xuất, sử dụng xử lý đặc biệt
       if (intent === 'recommendation') {
-        const { text, metadata } = await handleRecommendationIntent(input);
+        const { text, metadata: responseMetadata } = await handleRecommendationIntent(input);
         
-        // Xử lý metadata trước khi hiển thị tin nhắn để đảm bảo gợi ý sản phẩm hiển thị trước
-        if (metadata && metadata.type === 'product_carousel') {
-          handleMessageMetadata(metadata as MessageMetadata);
+        if (responseMetadata && responseMetadata.type === 'product_carousel') {
+          handleMessageMetadata(responseMetadata as MessageMetadata);
           
-          // Thêm thời gian chờ để đảm bảo gợi ý đã được hiển thị
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
         
-        // Sau đó mới hiển thị tin nhắn
         const botMessageId = Date.now().toString();
         const botMessage: Message = {
           id: botMessageId,
           text: text,
           sender: "bot",
           timestamp: new Date(),
-          metadata: metadata as MessageMetadata
+          metadata: responseMetadata as MessageMetadata
         }
         
         setMessages(prev => [...prev, botMessage]);
@@ -404,7 +398,7 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
           scrollToBottom();
         }, 100);
         
-        return; // Kết thúc sớm, không gọi API chatbot nữa
+        return;
       }
 
       // Tạo mảng lịch sử chat mới, bổ sung tin nhắn hiện tại
@@ -421,11 +415,7 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, processingMessage])
-
-      console.log("Gửi tin nhắn với lịch sử chat:", updatedHistory.length, "tin nhắn");
-      console.log(`[DEBUG] Trạng thái đăng nhập khi gửi tin nhắn: ${loggedIn ? 'Đã đăng nhập' : 'Chưa đăng nhập'}`);
       
-      // Sử dụng phương thức đã được cải tiến để gửi tin nhắn
       const { content, metadata } = await chatbotService.sendMessage(input, updatedHistory);
       
       // Xóa tin nhắn "đang xử lý"
@@ -528,8 +518,7 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
       localStorage.removeItem('chatbot_messages');
       localStorage.removeItem('chatbot_recommendations');
       localStorage.removeItem('chatbot_history');
-      localStorage.removeItem('chatbot_session_id'); // Xóa sessionId để tạo phiên chat mới
-      // Giữ lại chatbot_show_recommendations và chatbot_last_viewed
+      localStorage.removeItem('chatbot_session_id'); 
     }
   };
 
@@ -540,16 +529,12 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
     }
   };
 
-  // Xử lý ý định đề xuất món ăn
   const handleRecommendationIntent = async (userInput: string) => {
     try {
-      console.log("Xử lý ý định đề xuất món ăn...");
       
-      // Gọi API mới để lấy đề xuất
       const recommendationData = await recommendationService.getChatRecommendations(userInput, 5);
       
       if (recommendationData && recommendationData.products && recommendationData.products.length > 0) {
-        // Trước khi hiển thị, đảm bảo hình ảnh cho tất cả sản phẩm
         const enhancedProducts = recommendationData.products.map((product: Recommendation) => ({
           ...product,
           image: product.imageUrl || product.image || '/images/placeholder-food.jpg'
@@ -558,28 +543,23 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
         setRecommendations(enhancedProducts);
         setShowRecommendations(true);
         
-        // Kiểm tra nếu có phân tích query từ backend
         const queryAnalysis = recommendationData.queryAnalysis || null;
         const reasonings = recommendationData.reasonings || [];
         let responseText = "";
         
-        // Phân loại kết quả dựa trên phân tích của backend
+        
         const hasDirectMatches = enhancedProducts.some((p: Recommendation) => 
-          p.confidence! > 0.9 || (p.reasoning && p.reasoning.includes("Phù hợp với yêu cầu") || p.reasoning?.includes("chính là món"))
+          p.confidence! > 0.9 || (p.reasoning && p.reasoning.includes("chính là món"))
         );
         
         const exactProductMatches = queryAnalysis?.exactProductMatch || false;
         const isDirectProductRequest = queryAnalysis?.isDirectProductRequest || false;
         
-        // Sắp xếp lại kết quả để ưu tiên các sản phẩm khớp trực tiếp lên đầu
         if (hasDirectMatches || exactProductMatches || isDirectProductRequest) {
-          // Sắp xếp theo độ tin cậy/khớp
           const sortedProducts = [...enhancedProducts].sort((a, b) => {
-            // Ưu tiên các sản phẩm có tin cậy cao hơn
             const confidenceA = a.confidence || 0;
             const confidenceB = b.confidence || 0;
             
-            // Ưu tiên các sản phẩm có lý do đặc biệt
             const specialReasonA = a.reasoning && (a.reasoning.includes("chính là món") || a.reasoning.includes("Phù hợp với yêu cầu"));
             const specialReasonB = b.reasoning && (b.reasoning.includes("chính là món") || b.reasoning.includes("Phù hợp với yêu cầu"));
             
@@ -589,24 +569,23 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
             return confidenceB - confidenceA;
           });
           
-          // Cập nhật lại danh sách recommendations
           setRecommendations(sortedProducts);
           
-          // Tạo phản hồi cá nhân hóa dựa trên loại yêu cầu
+          // Tạo phản hồi cá nhân hóa sử dụng kết quả phân tích từ Gemini
           if (exactProductMatches && queryAnalysis?.primaryProductIntent) {
-            responseText = `Đây là món ${queryAnalysis.primaryProductIntent} mà bạn yêu cầu:`;
+            responseText = `Đây là món ${queryAnalysis.primaryProductIntent} mà bạn yêu cầu. Gemini đã phân tích yêu cầu của bạn và tìm thấy món phù hợp nhất.`;
           } else if (isDirectProductRequest) {
             const matchingKeywords = queryAnalysis?.extractedKeywords?.join(', ') || '';
-            responseText = `Tôi đã tìm thấy một số món phù hợp với yêu cầu "${matchingKeywords}" của bạn:`;
+            responseText = `Tôi đã sử dụng Gemini để phân tích yêu cầu "${matchingKeywords}" của bạn và tìm được những món ăn phù hợp nhất:`;
           } else {
-            responseText = `Tôi đã tìm thấy một số món ăn phù hợp với yêu cầu của bạn:`;
+            responseText = `Dựa trên phân tích của Gemini về yêu cầu của bạn, đây là những món ăn phù hợp nhất:`;
           }
         } else if (recommendationData.isNewUser) {
           responseText = "Đây là một số món ăn phổ biến tại nhà hàng chúng tôi. Hãy đăng nhập và tương tác nhiều hơn để nhận đề xuất cá nhân hóa tốt hơn!";
         } else if (reasonings.length > 0) {
-          responseText = "Đây là những món ăn được đề xuất dựa trên " + reasonings.join(", ") + " của bạn.";
+          responseText = "Gemini đã phân tích thông tin và đưa ra đề xuất dựa trên " + reasonings.join(", ") + " của bạn.";
         } else {
-          responseText = "Đây là một số món ăn có thể phù hợp với bạn:";
+          responseText = "Dựa trên phân tích của Gemini, đây là một số món ăn có thể phù hợp với bạn:";
         }
         
         return {
@@ -619,14 +598,14 @@ export default function ChatbotInterface({ onClose }: ChatbotInterfaceProps) {
       } else {
         // Fallback khi không có đề xuất
         return {
-          text: "Tôi không tìm thấy đề xuất phù hợp lúc này. Bạn có thể thử lại sau hoặc nói rõ hơn về loại món ăn bạn muốn?",
+          text: "Gemini không tìm thấy đề xuất phù hợp lúc này. Vui lòng thử mô tả rõ hơn về món ăn bạn muốn.",
           metadata: null
         };
       }
     } catch (error) {
       console.error("Lỗi khi xử lý ý định đề xuất:", error);
       return {
-        text: "Xin lỗi, đã xảy ra lỗi khi lấy đề xuất món ăn. Vui lòng thử lại sau.",
+        text: "Xin lỗi, đã xảy ra lỗi khi sử dụng Gemini để lấy đề xuất món ăn. Vui lòng thử lại sau.",
         metadata: null
       };
     }

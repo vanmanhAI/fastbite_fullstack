@@ -300,7 +300,7 @@ export const getChatRecommendations = async (query?: string, limit: number = 5):
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    console.log(`[RECOMMENDER] Gửi yêu cầu đề xuất với query: "${query}"`);
+    console.log(`[GEMINI] Gửi yêu cầu đề xuất với query: "${query}"`);
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
@@ -315,9 +315,9 @@ export const getChatRecommendations = async (query?: string, limit: number = 5):
       throw new Error(data.message || 'Không thể lấy đề xuất sản phẩm');
     }
     
-    console.log(`[RECOMMENDER] Nhận được ${data.products?.length || 0} đề xuất sản phẩm`);
+    console.log(`[GEMINI] Nhận được ${data.products?.length || 0} đề xuất sản phẩm`);
     if (data.queryAnalysis) {
-      console.log(`[RECOMMENDER] Thông tin phân tích query:`, data.queryAnalysis);
+      console.log(`[GEMINI] Kết quả phân tích Gemini:`, data.queryAnalysis);
     }
     
     return {
@@ -328,7 +328,7 @@ export const getChatRecommendations = async (query?: string, limit: number = 5):
         price: product.price,
         description: product.description || '',
         stock: product.stock || 0,
-        reasoning: product.reasoning || 'Gợi ý cho bạn',
+        reasoning: product.reasoning || 'Gợi ý từ Gemini',
         confidence: product.confidence || 0.5,
         category: product.categories?.[0]?.name || ''
       })),
@@ -337,10 +337,10 @@ export const getChatRecommendations = async (query?: string, limit: number = 5):
       queryAnalysis: data.queryAnalysis || null
     };
   } catch (error) {
-    console.error('Lỗi khi lấy đề xuất sản phẩm:', error);
+    console.error('[GEMINI] Lỗi khi lấy đề xuất sản phẩm:', error);
     return {
       products: [],
-      reasonings: ['Không thể lấy đề xuất lúc này'],
+      reasonings: ['Không thể lấy đề xuất từ Gemini lúc này'],
       isNewUser: false,
       queryAnalysis: null
     };

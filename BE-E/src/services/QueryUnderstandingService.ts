@@ -95,18 +95,18 @@ export class QueryUnderstandingService {
         
         // Map kết quả từ AI về cấu trúc QueryAnalysisResult
         return {
-          originalQuery: query,
-          extractedKeywords: aiResult.keywords || [],
-          exactProductMatch: aiResult.isSpecificProduct || false,
-          isDirectProductRequest: aiResult.isDirectRequest || false,
-          primaryProductIntent: aiResult.specificProduct || '',
-          confidence: aiResult.confidence || 0.7,
-          possibleCategories: aiResult.categories || [],
+          originalQuery: query, // Câu hỏi gốc
+          extractedKeywords: aiResult.keywords || [], // Từ khóa chính
+          exactProductMatch: aiResult.isSpecificProduct || false, // Có phải là yêu cầu về món ăn cụ thể
+          isDirectProductRequest: aiResult.isDirectRequest || false, // Yêu cầu trực tiếp về món ăn
+          primaryProductIntent: aiResult.specificProduct || '', // Tên món ăn cụ thể
+          confidence: aiResult.confidence || 0.7, // Độ tin cậy của kết quả
+          possibleCategories: aiResult.categories || [], // Danh mục có thể
           filters: {
-            priceRange: aiResult.priceRange,
-            dietaryPreferences: aiResult.dietaryPreferences,
-            mealType: aiResult.mealType,
-            flavor: aiResult.flavors
+            priceRange: aiResult.priceRange, // Phạm vi giá cả
+            dietaryPreferences: aiResult.dietaryPreferences, // Khẩu vị
+            mealType: aiResult.mealType, // Loại bữa ăn
+            flavor: aiResult.flavors // Vị
           }
         };
       } catch (error) {

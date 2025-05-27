@@ -11,6 +11,7 @@ import { Category } from "../models/Category";
 import { classifyEnhancedUserIntent, UserIntent } from '../services/enhancedIntentClassifier';
 import { In } from "typeorm";
 import { QueryUnderstandingService } from "../services/QueryUnderstandingService";
+import { ProductCategory } from "../models/Product";
 
 const chatLogRepository = AppDataSource.getRepository(ChatLog);
 const productRepository = AppDataSource.getRepository(Product);
@@ -181,6 +182,87 @@ async function handleUserPreferenceQuery(userId: number, message: string): Promi
       };
     }
     
+    // Kiểm tra câu hỏi có đề cập đến món ăn không
+    if (lowerQuery.includes('món ăn') || lowerQuery.includes('đồ ăn') || lowerQuery.includes('thức ăn') || 
+        lowerQuery.includes('đồ ăn') || (lowerQuery.includes('món') && !lowerQuery.includes('đồ uống'))) {
+      // Lọc sản phẩm thuộc danh mục đồ ăn
+      const foodProductIds = new Set<number>();
+      const foodScores = new Map<number, number>();
+      
+      for (const behavior of userBehaviors) {
+        if (behavior.product && 
+            (behavior.product.category?.toLowerCase() === 'food' || 
+             behavior.product.category?.toLowerCase() === 'đồ ăn' || 
+             behavior.product.category?.toLowerCase() === 'combo' || 
+             (behavior.product.tags && 
+              (behavior.product.tags.toLowerCase().includes('food') || 
+               behavior.product.tags.toLowerCase().includes('món ăn') || 
+               behavior.product.tags.toLowerCase().includes('đồ ăn'))))) {
+          
+          foodProductIds.add(behavior.product.id);
+          
+          // Tính điểm cho món ăn
+          const productId = behavior.product.id;
+          const viewScore = (viewCounts.get(productId) || 0) * weights.view;
+          const likeScore = (likeCounts.get(productId) || 0) * weights.like;
+          const cartCount = cartCounts.get(productId) || 0;
+          const cartScore = cartCount > 0 ? Math.pow(cartCount, 2.0) * weights.cart : 0;
+          
+          // Điểm thêm cho hành vi thêm vào giỏ hàng nhiều lần
+          const boostScore = cartCount >= 5 ? Math.log(cartCount) * 10 : 0;
+          
+          const totalScore = viewScore + likeScore + cartScore + boostScore;
+          if (totalScore > 0) {
+            foodScores.set(productId, totalScore);
+          }
+        }
+      }
+      
+      if (foodScores.size > 0) {
+        // Tìm món ăn yêu thích nhất
+        const favoriteFood = [...foodScores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([id, score]) => ({ 
+            id, 
+            name: productNames.get(id) || "",
+            score 
+          }))[0];
+        
+        const product = await productRepository.findOne({ where: { id: favoriteFood.id } });
+        
+        if (product) {
+          // Nếu có sản phẩm có điểm cao vượt trội
+          const sortedScores = [...foodScores.values()].sort((a, b) => b - a);
+          const isDominant = sortedScores.length > 1 && sortedScores[0] > sortedScores[1] * 3;
+          
+          const cartCount = cartCounts.get(favoriteFood.id) || 0;
+          const confidenceText = cartCount >= 8 ? 
+                                "Tôi chắc chắn" : 
+                                (cartCount >= 5 ? "Tôi khá chắc" : "Tôi nghĩ");
+          
+          return {
+            response: isDominant ?
+              `${confidenceText} bạn rất thích ${favoriteFood.name}. Bạn đã thêm vào giỏ hàng ${cartCount} lần và tương tác nhiều với món ăn này.` :
+              `${confidenceText} bạn thích ${favoriteFood.name}. Đây là món ăn mà bạn đã tương tác nhiều nhất.`,
+            metadata: {
+              favorite_product: product,
+              interaction_counts: {
+                views: viewCounts.get(favoriteFood.id) || 0,
+                likes: likeCounts.get(favoriteFood.id) || 0,
+                cart_adds: cartCounts.get(favoriteFood.id) || 0
+              }
+            }
+          };
+        }
+      }
+      
+      // Nếu không tìm thấy món ăn yêu thích
+      return {
+        response: "Tôi chưa thấy bạn tương tác nhiều với các món ăn. Bạn có muốn xem một số món ăn phổ biến không?",
+        metadata: null
+      };
+    }
+    
     // Trả về phản hồi tổng quát về sở thích
     if (topProducts.length > 0) {
       const topProductIds = topProducts.map(p => p.id);
@@ -224,17 +306,10 @@ async function handleUserPreferenceQuery(userId: number, message: string): Promi
   }
 }
 
-// Gửi tin nhắn đến chatbot và nhận phản hồi
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { message, sessionId = 'default', intentData, chatHistory } = req.body;
     const userId = req.user?.id;
-    
-    console.log(`[DEBUG] Nhận tin nhắn từ frontend - message: ${message}`);
-    console.log(`[DEBUG] userId: ${userId || 'Không có'}`);
-    console.log(`[DEBUG] sessionId: ${sessionId}`);
-    console.log(`[DEBUG] intentData:`, intentData);
-    console.log(`[DEBUG] chatHistory:`, chatHistory ? `${chatHistory.length} tin nhắn` : 'Không có');
     
     if (!message) {
       return res.status(400).json({
@@ -243,17 +318,12 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
     
-    // Kiểm tra JWT token
     const authHeader = req.headers.authorization;
-    console.log(`[DEBUG] Authorization header: ${authHeader ? 'Có' : 'Không có'}`);
     
-    // Phân tích ý định nếu chưa có
     let userIntent = intentData;
     if (!userIntent) {
       userIntent = await analyzeUserIntent(message);
     }
-    
-    console.log(`[DEBUG] Intent phân tích: ${userIntent.intent}, confidence: ${userIntent.confidence}`);
     
     let response = '';
     let metadata = null;
@@ -610,6 +680,12 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
     const queryAnalysis = await queryUnderstandingService.analyzeQuery(query);
     console.log(`[RECOMMENDATION] Kết quả phân tích query: "${query}"`, queryAnalysis);
     
+    // Kiểm tra nếu có danh mục cụ thể (từ enhancedIntentClassifier)
+    const specificCategory = intentData?.specificCategory;
+    if (specificCategory) {
+      console.log(`[RECOMMENDATION] Phát hiện danh mục cụ thể: ${specificCategory}`);
+    }
+    
     // Nếu phân tích cho thấy đây là yêu cầu trực tiếp về một sản phẩm cụ thể
     if (queryAnalysis.exactProductMatch || queryAnalysis.isDirectProductRequest) {
       // Tìm sản phẩm dựa trên kết quả phân tích
@@ -618,8 +694,31 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
       if (directProducts.length > 0) {
         console.log(`[RECOMMENDATION] Tìm thấy ${directProducts.length} sản phẩm trực tiếp từ yêu cầu`);
         
+        // Lọc sản phẩm theo danh mục nếu có specificCategory
+        let filteredProducts = directProducts;
+        if (specificCategory) {
+          filteredProducts = directProducts.filter(product => {
+            if (specificCategory === 'drink') {
+              return product.category === ProductCategory.DRINK || 
+                     (product.tags && product.tags.toLowerCase().includes('drink'));
+            } else if (specificCategory === 'food') {
+              return product.category === ProductCategory.FOOD || 
+                     (product.tags && product.tags.toLowerCase().includes('food'));
+            }
+            return true;
+          });
+          
+          // Nếu không tìm thấy sản phẩm nào sau khi lọc, sử dụng lại tất cả
+          if (filteredProducts.length === 0) {
+            console.log(`[RECOMMENDATION] Không tìm thấy sản phẩm nào thuộc danh mục ${specificCategory}, sử dụng tất cả`);
+            filteredProducts = directProducts;
+          } else {
+            console.log(`[RECOMMENDATION] Đã lọc ${filteredProducts.length}/${directProducts.length} sản phẩm thuộc danh mục ${specificCategory}`);
+          }
+        }
+        
         return {
-          products: directProducts.map(product => ({
+          products: filteredProducts.map(product => ({
             id: product.id,
             name: product.name,
             price: product.price,
@@ -644,14 +743,17 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
         const result = await recommendationEngine.getEnhancedPersonalizedRecommendations(
           userId,
           query,
-          limit
+          limit,
+          queryAnalysis // Truyền kết quả phân tích từ Gemini vào hàm đề xuất
         );
         
         if (result.success && result.products && result.products.length > 0) {
           // Nếu có phân tích query, ưu tiên các sản phẩm khớp với yêu cầu trực tiếp
+          let enhancedProducts = result.products;
+          
           if (queryAnalysis.extractedKeywords.length > 0) {
             // Tính điểm trùng khớp cho từng sản phẩm
-            const enhancedProducts = result.products.map(product => {
+            enhancedProducts = result.products.map(product => {
               const productName = product.name.toLowerCase();
               const productDesc = (product.description || '').toLowerCase();
               
@@ -674,16 +776,35 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
             
             // Sắp xếp lại danh sách sản phẩm theo điểm trùng khớp
             enhancedProducts.sort((a, b) => b.matchScore - a.matchScore);
+          }
+          
+          // Lọc sản phẩm theo danh mục cụ thể nếu được chỉ định
+          if (specificCategory) {
+            const originalCount = enhancedProducts.length;
+            enhancedProducts = enhancedProducts.filter(product => {
+              if (specificCategory === 'drink') {
+                return product.category === 'drink' || 
+                       (product.tags && product.tags.toLowerCase().includes('drink')) ||
+                       (product.name.toLowerCase().includes('nước'));
+              } else if (specificCategory === 'food') {
+                return (product.category === 'food' || product.category === 'combo') || 
+                       (product.tags && (product.tags.toLowerCase().includes('food') || 
+                                         product.tags.toLowerCase().includes('món ăn')));
+              }
+              return true;
+            });
             
-            return {
-              products: enhancedProducts,
-              timestamp: new Date().toISOString(),
-              queryAnalysis: queryAnalysis
-            };
+            console.log(`[RECOMMENDATION] Đã lọc ${enhancedProducts.length}/${originalCount} sản phẩm theo danh mục ${specificCategory}`);
+            
+            // Nếu không còn sản phẩm nào sau khi lọc, quay lại danh sách ban đầu
+            if (enhancedProducts.length === 0) {
+              console.log(`[RECOMMENDATION] Không tìm thấy sản phẩm thuộc danh mục ${specificCategory}, quay lại danh sách gợi ý ban đầu`);
+              enhancedProducts = result.products;
+            }
           }
           
           return {
-            products: result.products,
+            products: enhancedProducts,
             timestamp: new Date().toISOString(),
             queryAnalysis: queryAnalysis
           };
@@ -762,6 +883,28 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
       });
     }
     
+    // Lọc theo danh mục cụ thể
+    if (specificCategory) {
+      if (specificCategory === 'drink') {
+        queryBuilder.andWhere(qb => {
+          return `product.category = :category OR product.tags LIKE :tags OR product.name LIKE :nameContains`;
+        })
+        .setParameters({
+          category: ProductCategory.DRINK,
+          tags: '%drink%',
+          nameContains: '%nước%'
+        });
+      } else if (specificCategory === 'food') {
+        queryBuilder.andWhere(qb => {
+          return `product.category IN (:...categories) OR product.tags LIKE :tags`;
+        })
+        .setParameters({
+          categories: [ProductCategory.FOOD, ProductCategory.COMBO],
+          tags: '%food%'
+        });
+      }
+    }
+    
     // Lấy sản phẩm phù hợp
     const products = await queryBuilder.take(limit).getMany();
     
@@ -775,25 +918,72 @@ async function handleProductRecommendation(userId: number | undefined, intentDat
         stock: product.stock,
         reasoning: queryAnalysis.extractedKeywords.length > 0 
           ? `Phù hợp với từ khóa "${queryAnalysis.extractedKeywords.join(', ')}"`
-          : "Món ăn phổ biến phù hợp với thời điểm hiện tại"
+          : specificCategory 
+            ? `Món ${specificCategory === 'drink' ? 'đồ uống' : 'ăn'} phổ biến phù hợp với yêu cầu của bạn`
+            : "Món ăn phổ biến phù hợp với thời điểm hiện tại"
       }));
     } else {
       // Nếu không tìm thấy sản phẩm phù hợp, lấy sản phẩm phổ biến
-      const popularProducts = await productRepository.find({
-        where: { isActive: true },
-        order: { rating: "DESC" },
-        take: limit
-      });
+      let popularQueryBuilder = productRepository.createQueryBuilder("product")
+        .where("product.isActive = :isActive", { isActive: true })
+        .orderBy("product.rating", "DESC")
+        .take(limit);
       
-      recommendations = popularProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
-        description: product.description,
-        stock: product.stock,
-        reasoning: "Sản phẩm phổ biến được nhiều người ưa thích"
-      }));
+      // Vẫn ưu tiên lọc theo danh mục cụ thể nếu có
+      if (specificCategory) {
+        if (specificCategory === 'drink') {
+          popularQueryBuilder.andWhere(qb => {
+            return `product.category = :category OR product.tags LIKE :tags OR product.name LIKE :nameContains`;
+          })
+          .setParameters({
+            category: ProductCategory.DRINK,
+            tags: '%drink%',
+            nameContains: '%nước%'
+          });
+        } else if (specificCategory === 'food') {
+          popularQueryBuilder.andWhere(qb => {
+            return `product.category IN (:...categories) OR product.tags LIKE :tags`;
+          })
+          .setParameters({
+            categories: [ProductCategory.FOOD, ProductCategory.COMBO],
+            tags: '%food%'
+          });
+        }
+      }
+      
+      const popularProducts = await popularQueryBuilder.getMany();
+      
+      // Nếu vẫn không tìm thấy sản phẩm, bỏ qua lọc theo danh mục
+      if (popularProducts.length === 0 && specificCategory) {
+        console.log(`[RECOMMENDATION] Không tìm thấy sản phẩm thuộc danh mục ${specificCategory}, lấy tất cả sản phẩm phổ biến`);
+        const allPopularProducts = await productRepository.find({
+          where: { isActive: true },
+          order: { rating: "DESC" },
+          take: limit
+        });
+        
+        recommendations = allPopularProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
+          description: product.description,
+          stock: product.stock,
+          reasoning: "Sản phẩm phổ biến được nhiều người ưa thích"
+        }));
+      } else {
+        recommendations = popularProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: product.imageUrl || '/images/placeholder-food.jpg',
+          description: product.description,
+          stock: product.stock,
+          reasoning: specificCategory
+            ? `Món ${specificCategory === 'drink' ? 'đồ uống' : 'ăn'} phổ biến được nhiều người yêu thích`
+            : "Sản phẩm phổ biến được nhiều người ưa thích"
+        }));
+      }
     }
 
     return {
@@ -997,11 +1187,16 @@ export const getPersonalizedRecommendations = async (req: Request, res: Response
     const query = req.query.query as string || "";
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
     
-    // Sử dụng thuật toán đề xuất nâng cao
+    // Sử dụng QueryUnderstandingService để phân tích yêu cầu với Gemini
+    const queryAnalysis = await queryUnderstandingService.analyzeQuery(query);
+    console.log(`[GEMINI] Kết quả phân tích query "${query}":`, queryAnalysis);
+    
+    // Sử dụng thuật toán đề xuất nâng cao với kết quả phân tích từ Gemini
     const recommendations = await recommendationEngine.getEnhancedPersonalizedRecommendations(
       userId,
       query,
-      limit
+      limit,
+      queryAnalysis
     );
     
     if (recommendations.success) {
@@ -1010,7 +1205,8 @@ export const getPersonalizedRecommendations = async (req: Request, res: Response
         products: recommendations.products,
         reasonings: recommendations.reasonings,
         query: query || null,
-        isNewUser: recommendations.isNewUser || false
+        isNewUser: recommendations.isNewUser || false,
+        queryAnalysis: queryAnalysis // Trả về kết quả phân tích cho frontend
       });
     } else {
       return res.status(500).json({
